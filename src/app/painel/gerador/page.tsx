@@ -37,10 +37,11 @@ export default function Page() {
 
 async function Conteudo() {
   const me = await requirePermission("ai:use");
-  const [projetos, quem] = await Promise.all([
+  const [projetos, quem, minhas] = await Promise.all([
     db.select({ id: t.videoProjetos.id, titulo: t.videoProjetos.titulo, status: t.videoProjetos.status, progresso: t.videoProjetos.progresso, etapa: t.videoProjetos.etapa, criado: t.videoProjetos.createdAt, resultado: t.videoProjetos.resultado, brief: t.videoProjetos.brief })
       .from(t.videoProjetos).where(can(me.role, "system:view") ? undefined : eq(t.videoProjetos.userId, me.id)).orderBy(desc(t.videoProjetos.createdAt)).limit(40),
     quemFaz(),
+    db.select({ id: t.vozes.id, nome: t.vozes.nome }).from(t.vozes).where(eq(t.vozes.status, "PRONTA")).orderBy(desc(t.vozes.createdAt)).limit(30),
   ]);
 
   return (
@@ -100,6 +101,11 @@ async function Conteudo() {
           <div className="grid gap-1.5">
             <label htmlFor="voz" className="text-sm font-medium">Voz da narração</label>
             <select id="voz" name="voz" defaultValue="pt-BR-FranciscaNeural" className={sel}>
+              {minhas.length > 0 && (
+                <optgroup label="Minhas vozes (clonadas)">
+                  {minhas.map((v) => <option key={v.id} value={`minha:${v.id}`}>{v.nome}</option>)}
+                </optgroup>
+              )}
               {VOZES_EDGE.map((v) => <option key={v.id} value={v.id}>{v.nome} — grátis</option>)}
               <option value="">Melhor voz disponível na Central (pode ser paga)</option>
             </select>

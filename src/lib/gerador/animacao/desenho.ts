@@ -1,5 +1,5 @@
 import "server-only";
-import type { Acao, AnimCena, AnimVideo, Cenario, Objeto, Paleta } from "./tipos";
+import { CARTOES_HISTORIA, type Acao, type AnimCena, type AnimVideo, type Cenario, type Objeto, type Paleta } from "./tipos";
 
 // Desenha UM quadro da animação como SVG (o render.ts transforma em imagem e junta no vídeo).
 // Estilo: cenário plano em camadas, boneco-silhueta com articulações, luz recortada, legenda grande.
@@ -109,6 +109,13 @@ function fundo(c: Cores, cenario: Cenario, W: number, H: number, pan: number, se
     }
   }
   if (cenario === "escuro") p.push(`<rect width="${W}" height="${H}" fill="#000" opacity="0.6"/>`);
+  if (cenario === "painel") {
+    // fundo de infográfico (estilo notícia): escuro, grade fina que desliza e brilho suave no centro
+    p.push(`<rect width="${W}" height="${H}" fill="#0b0d14"/><rect width="${W}" height="${H}" fill="url(#brilho)"/>`);
+    const passo = 90, desl = (t * 18) % passo;
+    for (let x = -passo + desl; x < W + passo; x += passo) p.push(`<rect x="${n(x)}" y="0" width="2" height="${H}" fill="#ffffff" opacity="0.045"/>`);
+    for (let y = -passo + desl; y < H + passo; y += passo) p.push(`<rect x="0" y="${n(y)}" width="${W}" height="2" fill="#ffffff" opacity="0.045"/>`);
+  }
 
   // objetos soltos
   if (objetos.has("porta")) p.push(`<rect x="${W * 0.66}" y="${CHAO - 470}" width="230" height="470" fill="${c.perto}" stroke="${c.borda}" stroke-width="8"/><circle cx="${W * 0.66 + 195}" cy="${CHAO - 230}" r="10" fill="${c.luz}"/>${[0, 1].map((i) => `<rect x="${W * 0.66 + 30}" y="${CHAO - 430 + i * 210}" width="170" height="170" fill="none" stroke="${c.borda}" stroke-width="4" opacity="0.6"/>`).join("")}`);
@@ -126,8 +133,8 @@ function fundo(c: Cores, cenario: Cenario, W: number, H: number, pan: number, se
     if (Math.sin(t * 4) > 0.6) p.push(`<g transform="translate(${dx + 30} ${CHAO - 190})"><rect x="-38" y="-26" width="76" height="44" rx="20" fill="#fff"/><text y="8" font-family="Arial Black, Arial" font-size="24" text-anchor="middle" fill="#000">AU!</text></g>`);
   }
   // chão
-  p.push(`<rect y="${CHAO}" width="${W}" height="${H - CHAO}" fill="url(#chao)"/>`);
-  p.push(`<rect y="${CHAO}" width="${W}" height="6" fill="${c.borda}" opacity="0.45"/>`);
+  if (cenario !== "painel") p.push(`<rect y="${CHAO}" width="${W}" height="${H - CHAO}" fill="url(#chao)"/>`);
+  if (cenario !== "painel") p.push(`<rect y="${CHAO}" width="${W}" height="6" fill="${c.borda}" opacity="0.45"/>`);
   return p.join("");
 }
 
@@ -215,13 +222,144 @@ function quebrar(texto: string, max: number) {
   return out;
 }
 
-function cartao(c: Cores, k: AnimCena["cartao"], W: number, prog: number) {
+// ───────── peças de infográfico (aprendidas com Shorts de notícia/números) ─────────
+const FONTE = "Arial Black, Arial";
+const suave = (x: number) => { const v = Math.min(1, Math.max(0, x)); return 1 - Math.pow(1 - v, 3); };
+/** Tamanho de letra que faz o texto caber na largura (Arial Black ≈ 0,76 da altura por caractere). */
+const caber = (txt: string, larg: number, max: number) => Math.max(36, Math.min(max, Math.floor(larg / (Math.max(1, txt.length) * 0.76))));
+
+/** "2.305.966" → conta de "antes" (ou 0) até o valor, mantendo prefixo/sufixo ("R$ ", " MI", "%"). */
+function numeroContando(final: string, antes: string | undefined, p: number) {
+  const m = final.match(/^(\D*)([\d.,]+)(.*)$/);
+  if (!m) return final;
+  const [, pre, num, suf] = m;
+  const decimais = num.includes(",") ? num.split(",")[1].length : 0;
+  const ler = (s: string) => Number(s.replace(/\./g, "").replace(",", "."));
+  const alvo = ler(num);
+  const ini = antes && /[\d]/.test(antes) ? ler((antes.match(/[\d.,]+/) ?? ["0"])[0]) : 0;
+  if (!Number.isFinite(alvo)) return final;
+  const v = ini + (alvo - ini) * suave(p);
+  return pre + v.toLocaleString("pt-BR", { minimumFractionDigits: decimais, maximumFractionDigits: decimais }) + suf;
+}
+
+function infografico(c: Cores, k: NonNullable<AnimCena["cartao"]>, cx: number, cy: number, W: number, prog: number): string {
+  const rot = (txt: string, y: number, cor = c.destaque, tam = 52) => `<text x="${cx}" y="${y}" font-family="${FONTE}" font-size="${tam}" fill="${cor}" text-anchor="middle" letter-spacing="2">${esc(txt.toUpperCase().slice(0, 30))}</text>`;
+  const caixa = (x: number, y: number, w: number, h: number, borda = "#2a3150") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="34" fill="#141826" stroke="${borda}" stroke-width="4"/>`;
+  const L = W - 160;
+  if (k.tipo === "contador") {
+    const txt = numeroContando(k.titulo, k.antes, prog / 0.6);
+    const tam = caber(k.titulo, L - 80, 190);
+    return caixa(80, cy - 210, L, 400) + (k.texto ? rot(k.texto, cy - 110) : "") + `<text x="${cx}" y="${cy + 90}" font-family="${FONTE}" font-size="${tam}" fill="#fff" text-anchor="middle">${esc(txt)}</text>`;
+  }
+  if (k.tipo === "troca") {
+    const velho = (k.antes ?? "").toUpperCase().slice(0, 16), novo = k.titulo.toUpperCase().slice(0, 16);
+    const risco = suave((prog - 0.12) * 6), entra = suave((prog - 0.3) * 5);
+    const tv = caber(velho, L, 140), tn = caber(novo, L, 170);
+    const largV = Math.min(L, velho.length * tv * 0.68);
+    return (k.texto ? rot(k.texto, cy - 250, "#fff", 50) : "") +
+      `<text x="${cx}" y="${cy - 60}" font-family="${FONTE}" font-size="${tv}" fill="#8a90a8" text-anchor="middle">${esc(velho)}</text>` +
+      `<rect x="${n(cx - largV / 2 - 20)}" y="${cy - 60 - tv * 0.38}" width="${n((largV + 40) * risco)}" height="16" rx="8" fill="#ff3b4f" transform="rotate(-4 ${cx} ${cy - 100})"/>` +
+      `<g opacity="${n(entra)}" transform="translate(${cx} ${cy + 140}) scale(${n(0.6 + 0.4 * entra)}) translate(${-cx} ${-(cy + 140)})"><text x="${cx}" y="${cy + 190}" font-family="${FONTE}" font-size="${tn}" fill="#ff3b4f" text-anchor="middle">${esc(novo)}</text></g>`;
+  }
+  if (k.tipo === "barra") {
+    const meta = k.meta && k.meta > 0 ? k.meta : 100, valor = Math.max(0, Math.min(meta, k.valor ?? 0));
+    const pct = (valor / meta) * suave(prog / 0.55);
+    const fmt = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+    return rot(k.titulo, cy - 120, "#fff", 54) +
+      `<rect x="100" y="${cy - 50}" width="${W - 200}" height="84" rx="42" fill="#1c2133" stroke="#2a3150" stroke-width="4"/>` +
+      `<rect x="108" y="${cy - 42}" width="${n(Math.max(68, (W - 216) * pct))}" height="68" rx="34" fill="${c.destaque}"/>` +
+      `<text x="${cx}" y="${cy + 120}" font-family="${FONTE}" font-size="54" fill="#fff" text-anchor="middle">${esc(fmt(valor * suave(prog / 0.55)))} / ${esc(fmt(meta))}</text>` +
+      (k.texto ? rot(k.texto, cy + 210, "#ff3b4f", 50) : "");
+  }
+  if (k.tipo === "calendario") {
+    const vira = k.antes ? suave((prog - 0.3) * 5) : 1;
+    const dia = (vira < 0.5 && k.antes ? k.antes : k.texto ?? "").slice(0, 4);
+    const sy = n(Math.abs(Math.cos(vira * Math.PI))); // a folha "dobra" na troca
+    return `<rect x="${cx - 260}" y="${cy - 300}" width="520" height="560" rx="40" fill="#f4f1ea"/><rect x="${cx - 260}" y="${cy - 300}" width="520" height="150" rx="40" fill="#e23a3a"/><rect x="${cx - 260}" y="${cy - 200}" width="520" height="50" fill="#e23a3a"/>` +
+      `<circle cx="${cx - 150}" cy="${cy - 300}" r="18" fill="#2a2f45"/><circle cx="${cx + 150}" cy="${cy - 300}" r="18" fill="#2a2f45"/>` +
+      `<text x="${cx}" y="${cy - 200}" font-family="${FONTE}" font-size="${caber(k.titulo, 460, 64)}" fill="#fff" text-anchor="middle">${esc(k.titulo.toUpperCase().slice(0, 12))}</text>` +
+      `<g transform="translate(0 ${cy + 60}) scale(1 ${sy}) translate(0 ${-(cy + 60)})"><text x="${cx}" y="${cy + 150}" font-family="${FONTE}" font-size="260" fill="#141826" text-anchor="middle">${esc(dia)}</text></g>`;
+  }
+  if (k.tipo === "comparacao") {
+    const ls = (k.lados ?? []).slice(0, 2);
+    while (ls.length < 2) ls.push({ rotulo: "", valor: "" });
+    const lado = (i: number) => {
+      const a = suave((prog - i * 0.18) * 5), x = i === 0 ? 70 : cx + 25, w = cx - 95;
+      const cor = i === 0 ? "#8a90a8" : c.destaque;
+      return `<g opacity="${n(a)}" transform="translate(0 ${n((1 - a) * 60)})">${caixa(x, cy - 180, w, 380, cor)}<text x="${x + w / 2}" y="${cy - 80}" font-family="${FONTE}" font-size="${caber(ls[i].rotulo, w - 40, 54)}" fill="${cor}" text-anchor="middle">${esc(ls[i].rotulo.toUpperCase().slice(0, 12))}</text><text x="${x + w / 2}" y="${cy + 80}" font-family="${FONTE}" font-size="${caber(ls[i].valor, w - 40, 110)}" fill="#fff" text-anchor="middle">${esc(ls[i].valor.toUpperCase().slice(0, 12))}</text></g>`;
+    };
+    return (k.titulo ? rot(k.titulo, cy - 250, "#fff", 54) : "") + lado(0) + lado(1) + `<circle cx="${cx}" cy="${cy + 10}" r="56" fill="#e23a3a"/><text x="${cx}" y="${cy + 30}" font-family="${FONTE}" font-size="50" fill="#fff" text-anchor="middle">VS</text>`;
+  }
+  if (k.tipo === "check") {
+    const a = suave(prog * 4), b = suave((prog - 0.35) * 5);
+    const comp = 150 * suave((prog - 0.08) * 5);
+    return `<circle cx="${cx}" cy="${cy - 140}" r="${n(120 * a)}" fill="#22c55e"/><path d="M${cx - 60},${cy - 140} L${cx - 15},${cy - 95} L${cx + 65},${cy - 185}" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${n(comp)} 400"/>` +
+      `<text x="${cx}" y="${cy + 70}" font-family="${FONTE}" font-size="${caber(k.titulo.slice(0, 30), L, 96)}" fill="#fff" text-anchor="middle">${esc(k.titulo.toUpperCase().slice(0, 30))}</text>` +
+      (k.texto ? `<g opacity="${n(b)}"><text x="${cx}" y="${cy + 190}" font-family="${FONTE}" font-size="${caber(k.texto, L, 64)}" fill="#ff3b4f" text-anchor="middle">✕ ${esc(k.texto.toUpperCase().slice(0, 24))}</text></g>` : "");
+  }
+  return "";
+}
+
+/** Barra/etiquetas fixas do formato notícia: manchete, contagem da série, seção 1/N, fonte e medidor. */
+function cabecalho(c: Cores, cena: AnimCena, video: AnimVideo, W: number, t: number): string {
+  const p: string[] = [];
+  let y = 130;
+  if (video.manchete) {
+    // nunca corta a manchete: com mais texto, mais linhas e letra menor
+    const total = video.manchete.length;
+    const ls = quebrar(video.manchete.toUpperCase(), total > 44 ? 26 : 20).slice(0, 3);
+    const tam = Math.min(ls.length > 2 ? 62 : 76, caber(ls.reduce((a, b) => (a.length > b.length ? a : b), ""), W - 120, 76));
+    p.push(`<rect x="0" y="${y - 10}" width="${W}" height="${ls.length * (tam + 14) + 40}" fill="#000" opacity="0.55"/>`);
+    ls.forEach((l, i) => {
+      const spans = l.split(/(\*[^*]+\*)/).filter(Boolean).map((s) => s.startsWith("*") ? `<tspan fill="${c.destaque}">${esc(s.replace(/\*/g, ""))}</tspan>` : esc(s.replace(/\*/g, ""))).join("");
+      p.push(`<text x="${W / 2}" y="${y + 20 + (i + 1) * (tam + 6)}" font-family="${FONTE}" font-size="${tam}" fill="#fff" text-anchor="middle">${spans}</text>`);
+    });
+    y += ls.length * (tam + 14) + 60;
+  }
+  if (cena.secao && cena.secao.total > 0) {
+    const s = cena.secao, txt = `${s.n}/${s.total}  ${s.titulo.toUpperCase().slice(0, 22)}`;
+    const larg = txt.length * 27 + 60, x0 = (W - larg) / 2;
+    const ent = suave(t * 4);
+    p.push(`<g opacity="${n(ent)}" transform="translate(${n((1 - ent) * -80)} 0)"><rect x="${x0}" y="${y}" width="${larg}" height="72" rx="36" fill="${c.destaque}"/><text x="${W / 2}" y="${y + 50}" font-family="${FONTE}" font-size="40" fill="#141826" text-anchor="middle">${esc(txt)}</text></g>`);
+    const tot = Math.min(8, s.total), ini = W / 2 - (tot - 1) * 17;
+    for (let i = 0; i < tot; i++) p.push(`<circle cx="${ini + i * 34}" cy="${y + 102}" r="10" fill="${i < s.n ? c.destaque : "#ffffff"}" opacity="${i < s.n ? 1 : 0.3}"/>`);
+    // cena que só anuncia o ponto: número grande e título no meio da tela
+    if (!cena.cartao && cena.cenario === "painel") {
+      const a = suave(t * 3), cx = W / 2, cy = 820;
+      const tit = s.titulo.toUpperCase().slice(0, 22), ls = quebrar(tit, 12).slice(0, 2);
+      p.push(`<g opacity="${n(a)}" transform="translate(${cx} ${cy}) scale(${n(0.8 + 0.2 * a)}) translate(${-cx} ${-cy})"><text x="${cx}" y="${cy - 40}" font-family="${FONTE}" font-size="300" fill="${c.destaque}" text-anchor="middle">${s.n}</text>${ls.map((l, i) => `<text x="${cx}" y="${cy + 90 + i * 104}" font-family="${FONTE}" font-size="${caber(l, W - 160, 96)}" fill="#fff" text-anchor="middle">${esc(l)}</text>`).join("")}</g>`);
+    }
+  } else if (!cena.cartao && cena.cenario === "painel" && cena.destaques?.length) {
+    // painel sem peça nenhuma: as palavras-chave da fala viram o destaque da cena
+    const a = suave(t * 3), cx = W / 2, cy = 820;
+    const ls = cena.destaques.slice(0, 2).map((d) => d.toUpperCase().slice(0, 16));
+    p.push(`<g opacity="${n(a)}" transform="translate(${cx} ${cy}) scale(${n(0.8 + 0.2 * a)}) translate(${-cx} ${-cy})">${ls.map((l, i) => `<text x="${cx}" y="${cy - (ls.length - 1) * 70 + i * 150}" font-family="${FONTE}" font-size="${caber(l, W - 160, 140)}" fill="${i === 0 ? "#fff" : c.destaque}" text-anchor="middle">${esc(l)}</text>`).join("")}</g>`);
+  }
+  if (cena.medidor) {
+    const m = cena.medidor, alvo = Math.max(0, Math.min(100, m.pct)), de = Math.max(0, Math.min(100, m.de ?? alvo));
+    const pct = de + (alvo - de) * suave((t - 0.3) * 1.5);
+    const x = W - 404, yy = video.manchete ? y : 124;
+    p.push(`<rect x="${x}" y="${yy}" width="360" height="86" rx="20" fill="#000" opacity="0.7"/><text x="${x + 22}" y="${yy + 34}" font-family="${FONTE}" font-size="24" fill="#fff">${esc(m.rotulo.toUpperCase().slice(0, 14))}</text><text x="${x + 338}" y="${yy + 34}" font-family="${FONTE}" font-size="24" fill="${c.destaque}" text-anchor="end">${Math.round(pct)}%</text><rect x="${x + 22}" y="${yy + 50}" width="316" height="18" rx="9" fill="#2a3150"/><rect x="${x + 22}" y="${yy + 50}" width="${n(Math.max(18, 316 * pct / 100))}" height="18" rx="9" fill="#22c55e"/>`);
+  }
+  if (cena.fonte) {
+    const txt = `FONTE: ${cena.fonte.toUpperCase().slice(0, 34)}`;
+    p.push(`<rect x="${(W - (txt.length * 15 + 40)) / 2}" y="1168" width="${txt.length * 15 + 40}" height="44" rx="10" fill="#000" opacity="0.7"/><text x="${W / 2}" y="1198" font-family="Arial" font-weight="bold" font-size="24" fill="#cfd3e0" text-anchor="middle" letter-spacing="1">${esc(txt)}</text>`);
+  }
+  return p.join("");
+}
+
+function cartao(c: Cores, k: AnimCena["cartao"], W: number, prog: number, painel = false) {
   if (!k) return "";
   const e = Math.min(1, prog * 5); // entra rápido
   const sc = n(0.85 + 0.15 * (1 - Math.pow(1 - e, 3)));
   const op = n(e);
-  const cx = W / 2, cy = 700;
-  const corpo: string[] = [`<rect x="0" y="0" width="${W}" height="1920" fill="#000" opacity="${n(0.45 * e)}"/>`];
+  const cx = W / 2, cy = (CARTOES_HISTORIA as readonly string[]).includes(k.tipo) ? 700 : 860;
+  // no fundo de infográfico o cartão É a cena: não escurece
+  const corpo: string[] = painel ? [] : [`<rect x="0" y="0" width="${W}" height="1920" fill="#000" opacity="${n(0.45 * e)}"/>`];
+  if (!(CARTOES_HISTORIA as readonly string[]).includes(k.tipo)) {
+    corpo.push(`<g opacity="${op}" transform="translate(${cx} ${cy}) scale(${sc}) translate(${-cx} ${-cy})">${infografico(c, k, cx, cy, W, prog)}</g>`);
+    return corpo.join("");
+  }
   const g = (inner: string) => corpo.push(`<g opacity="${op}" transform="translate(${cx} ${cy}) scale(${sc}) translate(${-cx} ${-cy})">${inner}</g>`);
   if (k.tipo === "numero") {
     g(`<text x="${cx}" y="${cy + 120}" font-family="Arial Black, Arial" font-size="360" fill="#fff" text-anchor="middle">${esc(k.titulo.slice(0, 4))}</text>${k.texto ? `<text x="${cx}" y="${cy + 220}" font-family="Arial Black, Arial" font-size="56" fill="${c.destaque}" text-anchor="middle">${esc(k.texto.slice(0, 24).toUpperCase())}</text>` : ""}`);
@@ -291,8 +429,11 @@ export function quadro(q: QuadroEntrada): string {
   partes.push(`<rect width="${W}" height="${H}" fill="url(#vinheta)"/>`);
   // painel de cima
   if (q.video.episodio) partes.push(pilula(44, 60, q.video.episodio.toUpperCase().slice(0, 28), "#ffffff", "#000000", "start"));
+  else if (q.video.contagem) partes.push(pilula(44, 60, q.video.contagem.toUpperCase().slice(0, 20), c.destaque, "#000000", "start"));
+  if (q.video.episodio && q.video.contagem && !cena.status) partes.push(pilula(W - 44, 60, q.video.contagem.toUpperCase().slice(0, 20), c.destaque, "#000000", "end"));
   if (cena.status) partes.push(pilula(W - 44, 60, cena.status.toUpperCase().slice(0, 24), cena.alerta ? "#ff4d5e" : "#ffffff", "#000000", "end", cena.alerta ? "#ff4d5e" : undefined));
-  if (cena.cartao) partes.push(cartao(c, cena.cartao, W, t / Math.max(0.5, dur)));
+  if (cena.cartao) partes.push(cartao(c, cena.cartao, W, t / Math.max(0.5, dur), cena.cenario === "painel"));
+  partes.push(cabecalho(c, cena, q.video, W, t));
   if (q.escolhaProg !== undefined && q.video.escolha) partes.push(escolha(c, q.video.escolha, W, q.escolhaProg));
   if (q.legenda) partes.push(legenda(c, q.legenda.palavras, q.legenda.atual, new Set((cena.destaques ?? []).map((d) => d.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ""))), W, perigo));
 
@@ -301,6 +442,7 @@ export function quadro(q: QuadroEntrada): string {
 <linearGradient id="chao" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.chao}"/><stop offset="1" stop-color="#05060c"/></linearGradient>
 <linearGradient id="coneD" x1="0" x2="1"><stop offset="0" stop-color="${c.luz}" stop-opacity="0.75"/><stop offset="1" stop-color="${c.luz}" stop-opacity="0"/></linearGradient>
 <linearGradient id="coneE" x1="1" x2="0"><stop offset="0" stop-color="${c.luz}" stop-opacity="0.75"/><stop offset="1" stop-color="${c.luz}" stop-opacity="0"/></linearGradient>
+<radialGradient id="brilho" cx="0.5" cy="0.42" r="0.6"><stop offset="0" stop-color="${c.destaque}" stop-opacity="0.10"/><stop offset="1" stop-color="${c.destaque}" stop-opacity="0"/></radialGradient>
 <radialGradient id="vinheta" cx="0.5" cy="0.42" r="0.75"><stop offset="0.55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.75"/></radialGradient>
 </defs>${partes.join("")}</svg>`;
 }

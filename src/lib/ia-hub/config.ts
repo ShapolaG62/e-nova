@@ -16,7 +16,7 @@ const lista = (v: Campos | Campos[] | undefined): Campos[] => (!v ? [] : Array.i
 export const MAX_CHAVES = 10;
 
 /** Serviços que funcionam sem chave (a chave, se houver, só melhora). */
-const SEM_CHAVE = new Set(["ollama", "pollinations", "edge", "imagem-local"]);
+const SEM_CHAVE = new Set(["ollama", "pollinations", "edge", "imagem-local", "voz-local"]);
 
 function abrir(enc: Campos): Campos | null {
   try { return Object.fromEntries(Object.entries(enc).map(([k, v]) => [k, decrypt(v)])); } catch { return null; }

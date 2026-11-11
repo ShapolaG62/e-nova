@@ -33,6 +33,7 @@ function navFor(user: SessionUser): NavItem[] {
   push(can(r, "pages:read"), { href: "/painel/paginas", label: "Páginas", icon: "page", group: "Conteúdo" });
   push(can(r, "ai:use"), { href: "/painel/ia", label: "Estúdio IA", icon: "sparkles", group: "Conteúdo" });
   push(can(r, "ai:use"), { href: "/painel/estudio", label: "Estúdio de mídia", icon: "wand", group: "Conteúdo" });
+  push(can(r, "ai:use"), { href: "/painel/vozes", label: "Minha voz", icon: "mic", group: "Conteúdo" });
   push(can(r, "ai:use"), { href: "/painel/ferramentas", label: "Ferramentas", icon: "package", group: "Conteúdo" });
 
   push(can(r, "reports:read"), { href: "/painel/relatorios", label: "Relatórios", icon: "report", group: "Gestão" });

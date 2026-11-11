@@ -44,3 +44,7 @@ next-env.d.ts
 .data/
 !.env.example
 /bin/
+
+# voz no computador (ambiente Python, ~5 GB)
+/tools/voz-local/.venv/
+__pycache__/

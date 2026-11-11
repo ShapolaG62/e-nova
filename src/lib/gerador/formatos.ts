@@ -19,6 +19,20 @@ export const FORMATOS: Formato[] = [
     cenaSeg: [2.5, 5],
   },
   {
+    id: "noticia",
+    nome: "Notícia com números (infográfico)",
+    descricao: "Uma novidade explicada com números animados, pontos numerados e o que muda para quem assiste.",
+    estrutura: "Cena 1: a notícia inteira numa frase com o número que choca (“O YouTube vai dobrar a meta… de 10 para 20 milhões”) e a manchete fixa em forma de pergunta → por que isso importa para quem assiste (“quem vai abrir um canal já está correndo contra o relógio”) → 2 a 4 pontos numerados (1/3, 2/3, 3/3), cada um com UM número que aparece na tela no instante em que é dito: hoje × depois, valor velho riscado × novo, barra do que falta, data no calendário → um ponto de virada ou o que NÃO muda (alívio) → a conta final ou a consequência em duas saídas (“se der tempo… / se atrasar…”) → chamada curta que promete continuação (“se inscreve e acompanha”). Cenas de 2 a 3 s; fale os números por extenso.",
+    cenaSeg: [2, 3.5],
+  },
+  {
+    id: "serie-diaria",
+    nome: "Série diária com votação",
+    descricao: "Episódios de um desafio (“30 dias para…”) em que o público vota o próximo passo.",
+    estrutura: "Abre com o resultado da votação anterior (“Vocês escolheram cabelo…”) e logo um obstáculo concreto (“só que ele tem 12 reais na conta”) → contador fixo do que falta (“FALTAM 26”) e medidor do progresso → uma saída inesperada encontrada pelo personagem → escalada de exageros cômicos curtos, um por cena (“a primeira tesoura entorta, a segunda pede demissão”) → virada (“três horas depois”) e o resultado visível, com o medidor subindo → um último detalhe que ainda falta, que vira gancho → votação das duas próximas opções (“barba ou dentes? Comente uma palavra”) → pedido de curtida ligado a uma piada da história.",
+    cenaSeg: [2, 4],
+  },
+  {
     id: "explicativo",
     nome: "Explicativo narrado",
     descricao: "Explica uma ideia, um serviço ou um “como funciona” em poucos passos.",

@@ -111,6 +111,13 @@ export const cartesia: Adaptador = async (cap, e, ctx) => {
   const { chave, rota, sinal } = ctx;
   const h = { Authorization: `Bearer ${chave.apiKey}`, "Cartesia-Version": "2026-08-14" };
   let voz = e.voz || chave.vozPadrao;
+  // "minha:<id>" = voz clonada no E-Nova (tela Minha voz)
+  if (voz?.startsWith("minha:")) {
+    const { vozDoId } = await import("@/lib/voz");
+    const v = await vozDoId(voz);
+    if (!v?.cartesiaId) throw new FalhaProvedor("Esta voz ainda não foi clonada na Cartesia", "nao-suporta");
+    voz = v.cartesiaId;
+  } else if (voz && !/^[0-9a-f-]{36}$/i.test(voz)) voz = chave.vozPadrao; // id de outra plataforma (ex.: Microsoft)
   if (!voz) {
     const d = await pedirJson(`${CA}/voices?language=pt-BR&limit=10`, { headers: h, sinal, quem: "Cartesia" }).catch(() => ({}));
     voz = (d as any).data?.[0]?.id ?? "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4";
