@@ -5,7 +5,7 @@ import { executar } from "@/lib/ia-hub/roteador";
 import { FalhaProvedor } from "@/lib/ia-hub/tipos";
 import { CONHECIMENTO } from "./conhecimento";
 import { formato } from "./formatos";
-import { ACOES, CARTOES, CENARIOS, EFEITOS, OBJETOS, PALETAS, SONS } from "./animacao/tipos";
+import { ACOES, CARTOES, CARTOES_HISTORIA, CENARIOS, EFEITOS, OBJETOS, PALETAS, SONS } from "./animacao/tipos";
 
 // O "diretor": transforma o brief em tratamento + roteiro decupado em cenas,
 // usando o ofício de direção aprendido da skill hypit (ver conhecimento.ts).
@@ -31,14 +31,23 @@ const AnimCenaSchema = z.object({
   som: z.enum(SONS).optional().describe("Efeito sonoro no começo da cena, só quando a fala pede"),
   status: z.string().max(24).optional().describe("Etiqueta curta no canto de cima, em CAIXA ALTA (ex.: VOZ NA PORTA, PASSOS ATRÁS)"),
   alerta: z.boolean().optional().describe("true deixa a etiqueta vermelha com bolinha"),
-  cartao: z.object({ tipo: z.enum(CARTOES), titulo: z.string().max(40), texto: z.string().max(90).optional(), remetente: z.string().max(20).optional() }).optional()
-    .describe("Cartão sobre a cena: regra (titulo 'Regra nº 4' + texto), celular (remetente + texto da mensagem), titulo (frase de impacto), numero (número grande + texto)"),
+  cartao: z.object({
+    tipo: z.enum(CARTOES), titulo: z.string().max(40), texto: z.string().max(90).optional(), remetente: z.string().max(20).optional(),
+    antes: z.string().max(20).optional(), valor: z.number().optional(), meta: z.number().optional(),
+    lados: z.array(z.object({ rotulo: z.string().max(14), valor: z.string().max(12) })).max(2).optional(),
+  }).optional()
+    .describe("Cartão sobre a cena. História: regra, celular, titulo, numero. Infográfico: contador (titulo=número final, texto=rótulo, antes=início), troca (antes=valor velho riscado, titulo=valor novo, texto=rótulo), barra (titulo=rótulo, valor, meta, texto=o que falta), calendario (titulo=mês, texto=dia, antes=dia anterior), comparacao (titulo=pergunta, lados=[{rotulo,valor},{rotulo,valor}]), check (titulo=o que já foi, texto=o que falta)"),
   destaques: z.array(z.string()).max(3).optional().describe("Até 3 palavras-chave DA PRÓPRIA FALA que acendem coloridas na legenda"),
+  secao: z.object({ n: z.number().int().min(1), total: z.number().int().min(2).max(8), titulo: z.string().max(22) }).optional().describe("Ponto numerado do vídeo: 1/3 AS HORAS"),
+  fonte: z.string().max(34).optional().describe("De onde vem a informação (ex.: AJUDA DO YOUTUBE). Só com fonte real do brief."),
+  medidor: z.object({ rotulo: z.string().max(14), pct: z.number().min(0).max(100), de: z.number().min(0).max(100).optional() }).optional().describe("Barra de progresso fixa da série (ex.: LIMPEZA de 50 para 65)"),
 });
 const AnimVideoSchema = z.object({
   episodio: z.string().max(28).optional().describe("Etiqueta fixa (ex.: 'EP. 1 · O ELEVADOR')"),
   corPersonagem: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().describe("Cor do boné do personagem, igual no vídeo todo"),
   escolha: z.object({ a: z.string().max(60), b: z.string().max(60) }).optional().describe("As duas opções finais (formato Você decide)"),
+  manchete: z.string().max(60).optional().describe("Pergunta curta (até 40 letras) fixa no topo o vídeo todo, com a palavra-chave entre *asteriscos* (ex.: 'GTA 6 vai ser *lento* demais?')"),
+  contagem: z.string().max(20).optional().describe("Contador fixo da série (ex.: 'FALTAM 26', 'DIA 4/30')"),
 });
 // sem os campos de imagem (não usados aqui): a resposta fica curta o bastante para as IAs grátis
 const CenaAnimSchema = z.object({ narracao: z.string().min(2), anim: AnimCenaSchema });
@@ -89,6 +98,17 @@ Não há imagens geradas: cada cena é DESENHADA pelo E-Nova a partir do campo "
 - destaques: 1 ou 2 palavras fortes da fala (nome, ameaça, número).
 - anim.episodio: etiqueta fixa da série; anim.corPersonagem: uma cor forte (ex.: #e23a3a) usada no vídeo todo.
 - No formato "Você decide", a ÚLTIMA cena narra as duas opções e o pedido "Comente A ou B"; preencha anim.escolha com as opções (curtas). A tela de escolha aparece sozinha na última cena.
+- Série diária (ex.: "30 dias para…"): anim.contagem com o que falta ("FALTAM 26"), medidor com o progresso que muda neste episódio (de → pct), primeira cena lembra o resultado da votação anterior, última cena abre a votação do próximo (anim.escolha).
+
+## Infográfico animado (notícia, números, "o que muda")
+Para assunto de notícia, regra, número, comparação ou explicação com dados, use cenario "painel" (fundo escuro de infográfico), acao "sem-personagem" e conte a história com as peças:
+- anim.manchete: a PERGUNTA ou a promessa do vídeo, fixa no topo, com a palavra-chave entre *asteriscos*.
+- contador: todo número importante entra contando (views, inscritos, preço, dias). troca: o valor velho riscado e o novo em vermelho ("10 MILHÕES" → "20 MILHÕES"). barra: quanto já tem e quanto falta para a meta. calendario: datas e prazos. comparacao: antes × depois, hoje × 2027, opção × opção. check: o que já foi cumprido e o que falta.
+- secao: quando o vídeo tem 2 a 5 pontos, numere cada um (1/3, 2/3, 3/3) com título de 1 a 3 palavras; o número também vai na fala ("Um, as horas.").
+- fonte: etiqueta "FONTE: …" na cena que cita quem disse — só se a fonte está no brief.
+- Uma peça por cena, e ela muda a cada 2 a 3 segundos. Cada número dito na fala aparece na tela no mesmo instante, compacto ("2,3 MI"); na fala, por extenso.
+- som: "whoosh" quando entra uma seção ou peça nova, "tique" no contador, "impacto" no valor novo em vermelho, "ding" no check. Nunca o mesmo som em todas as cenas.
+- Neste modo, cartões de infográfico podem estar em quase todas as cenas (não há limite de dois); nunca o mesmo tipo três vezes seguidas.
 - Cada cena tem só "narracao" e "anim". Omita campos opcionais que não usar. Devolva o JSON COMPACTO, numa linha só, sem quebras nem espaços extras (a resposta tem limite de tamanho).`;
 
 export async function escreverRoteiro(brief: VideoBrief, o: { userId?: string | null; progresso?: (pct: number, etapa?: string) => void | Promise<void> } = {}): Promise<VideoRoteiro> {
@@ -135,7 +155,7 @@ ${aprendido}` : ""}`, prompt, schemaJson: z.toJSONSchema(schema) as Record<strin
     },
   );
   const d = dados!;
-  if (animado) limparAnimacao(d.cenas);
+  if (animado) limparAnimacao(d.cenas, !!d.anim?.escolha);
   return {
     titulo: d.titulo,
     gancho: d.gancho,
@@ -172,14 +192,24 @@ function animadoTexto(b: VideoBrief) {
   return b.estilo === "animacao" ? "Estilo: ANIMAÇÃO DESENHADA POR CÓDIGO (preencha anim em todas as cenas; vertical 9:16)." : "";
 }
 
-/** Cartão é tempero: no máximo 2 por vídeo (prefere celular e regra), nunca dois seguidos, nunca na última cena. */
-function limparAnimacao(cenas: { anim?: z.infer<typeof AnimCenaSchema> }[]) {
-  const peso = { celular: 3, regra: 2, titulo: 1, numero: 0 } as const;
-  const com = cenas.map((c, i) => ({ i, k: c.anim?.cartao })).filter((x) => x.k && x.i < cenas.length - 1)
+/**
+ * Cartão de história é tempero: no máximo 2 por vídeo (prefere celular e regra), nunca dois seguidos.
+ * Cartões de infográfico (contador, troca, barra…) são o conteúdo do formato notícia: ficam, só não repetem
+ * o mesmo tipo três vezes seguidas. Nenhum cartão na última cena quando ela tem a tela de escolha.
+ */
+function limparAnimacao(cenas: { anim?: z.infer<typeof AnimCenaSchema> }[], comEscolha: boolean) {
+  const peso: Record<string, number> = { celular: 3, regra: 2, titulo: 1, numero: 0 };
+  const historia = (t?: string) => !!t && (CARTOES_HISTORIA as readonly string[]).includes(t);
+  const com = cenas.map((c, i) => ({ i, k: c.anim?.cartao })).filter((x) => x.k && historia(x.k.tipo) && x.i < cenas.length - 1)
     .sort((a, b) => peso[b.k!.tipo] - peso[a.k!.tipo] || a.i - b.i);
   const manter = new Set<number>();
   for (const x of com) if (manter.size < 2 && !manter.has(x.i - 1) && !manter.has(x.i + 1)) manter.add(x.i);
-  cenas.forEach((c, i) => { if (c.anim && !manter.has(i)) delete c.anim.cartao; });
+  cenas.forEach((c, i) => {
+    const k = c.anim?.cartao;
+    if (!k || !c.anim) return;
+    if (historia(k.tipo) ? !manter.has(i) : (i >= 2 && cenas[i - 1].anim?.cartao?.tipo === k.tipo && cenas[i - 2].anim?.cartao?.tipo === k.tipo)) delete c.anim.cartao;
+    else if (comEscolha && i === cenas.length - 1) delete c.anim.cartao;
+  });
 }
 
 /**
@@ -197,7 +227,10 @@ function sanear(j: unknown): unknown {
     if (typeof r.anim.corPersonagem !== "string" || !/^#[0-9a-fA-F]{6}$/.test(r.anim.corPersonagem)) r.anim.corPersonagem = "#e23a3a";
     const e = r.anim.escolha as { a?: unknown; b?: unknown } | undefined;
     r.anim.escolha = e && typeof e.a === "string" && typeof e.b === "string" ? { a: e.a.slice(0, 60), b: e.b.slice(0, 60) } : undefined;
+    r.anim.manchete = corta(r.anim.manchete, 60);
+    r.anim.contagem = corta(r.anim.contagem, 20);
   } else r.anim = {};
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() && Number.isFinite(Number(v.replace(",", "."))) ? Number(v.replace(",", ".")) : undefined);
   if (Array.isArray(r.cenas)) for (const c of r.cenas as { anim?: Record<string, unknown> }[]) {
     const a = (c.anim ??= {});
     a.cenario = um(CENARIOS, a.cenario, "rua-noite");
@@ -211,9 +244,24 @@ function sanear(j: unknown): unknown {
     a.alerta = a.alerta === true;
     const k = a.cartao as Record<string, unknown> | undefined;
     a.cartao = k && (CARTOES as readonly unknown[]).includes(k.tipo) && typeof k.titulo === "string" && k.titulo.trim()
-      ? { tipo: k.tipo, titulo: k.titulo.slice(0, 40), ...(typeof k.texto === "string" ? { texto: k.texto.slice(0, 90) } : {}), ...(typeof k.remetente === "string" ? { remetente: k.remetente.slice(0, 20) } : {}) }
+      ? {
+          tipo: k.tipo, titulo: k.titulo.slice(0, 40),
+          ...(typeof k.texto === "string" ? { texto: k.texto.slice(0, 90) } : {}),
+          ...(typeof k.remetente === "string" ? { remetente: k.remetente.slice(0, 20) } : {}),
+          ...(k.antes !== undefined && k.antes !== null ? { antes: String(k.antes).slice(0, 20) } : {}),
+          ...(num(k.valor) !== undefined ? { valor: num(k.valor) } : {}),
+          ...(num(k.meta) !== undefined ? { meta: num(k.meta) } : {}),
+          ...(Array.isArray(k.lados) ? { lados: (k.lados as { rotulo?: unknown; valor?: unknown }[]).slice(0, 2).map((l) => ({ rotulo: String(l?.rotulo ?? "").slice(0, 14), valor: String(l?.valor ?? "").slice(0, 12) })) } : {}),
+        }
       : undefined;
     a.destaques = Array.isArray(a.destaques) ? a.destaques.filter((d) => typeof d === "string").slice(0, 3) : [];
+    const s = a.secao as { n?: unknown; total?: unknown; titulo?: unknown } | undefined;
+    const sn = num(s?.n), st = num(s?.total);
+    a.secao = s && sn && st && st >= 2 && typeof s.titulo === "string" ? { n: Math.min(Math.round(sn), Math.min(8, Math.round(st))), total: Math.min(8, Math.round(st)), titulo: s.titulo.slice(0, 22) } : undefined;
+    a.fonte = corta(a.fonte, 34);
+    const m = a.medidor as { rotulo?: unknown; pct?: unknown; de?: unknown } | undefined;
+    const mp = num(m?.pct), md = num(m?.de);
+    a.medidor = m && typeof m.rotulo === "string" && mp !== undefined ? { rotulo: m.rotulo.slice(0, 14), pct: Math.max(0, Math.min(100, mp)), ...(md !== undefined ? { de: Math.max(0, Math.min(100, md)) } : {}) } : undefined;
   }
   return j;
 }

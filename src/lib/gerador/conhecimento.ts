@@ -58,7 +58,19 @@ A legenda mostra a fala no momento em que é dita. Títulos, rótulos, números 
 ## 9. Som
 A música dá ritmo e clima, recua sob nomes, números, afirmações e punchlines e ganha espaço nas pausas. Cada som precisa de motivo.
 
-## 10. Antes de entregar o roteiro, confira
+## 10. O que aprendemos com Shorts que funcionam (referências reais, 34 a 70 s)
+- O gancho é a notícia inteira na primeira frase, com o número mais forte e um contraste: "vai dobrar a meta, de 10 para 20 milhões"; "deixou o GTA 6 mais lento de propósito, e quem joga na correria vai sentir". Nada de apresentação.
+- Logo depois, diga por que isso é problema de quem assiste ("quem vai abrir um canal já está correndo contra esse relógio") ou mostre que o narrador está na mesma corrida ("o meu canal, feito todo com IA, tá correndo contra esse relógio"). Isso cria torcida.
+- Credibilidade antes do conteúdo: cite a fonte cedo ("quem contou foi o chefe da Rockstar North para a revista Edge") e mostre a fonte na tela. Números reais e exatos > adjetivos.
+- Estrutura numerada falada e mostrada: "Primeiro… Segundo… Terceiro… E a quarta, para mim, é a mais pesada." O último ponto é o mais forte e recebe uma opinião do narrador.
+- Inclua um ponto de alívio ou o que não muda ("os mil inscritos continuam"; "tem ônibus e app de corrida") — o vídeo parece justo e não só alarmista.
+- Final com duas saídas claras ("se der tempo, entra pela regra antiga; se atrasar, a meta vira 20") ou uma pergunta binária para comentar ("isso é genial ou chato?"; "barba ou dentes? comente uma palavra"). A pergunta final gera comentários; o pedido de inscrição vem colado numa promessa ("se inscreve e acompanha se a gente chega lá").
+- Ritmo: troca visual a cada 2 a 3 segundos; cada número dito aparece na tela no mesmo instante; legenda de 1 a 3 palavras, com a palavra-chave em amarelo. Manchete-pergunta fixa no topo durante o vídeo todo.
+- Peças visuais que se repetem nesses vídeos: contador subindo, valor velho riscado e o novo em vermelho, barra "falta X para a meta", calendário com a data, linha do tempo com dois finais (verde "deu tempo" × vermelho "atrasou"), "hoje × depois" lado a lado, check verde do que já foi cumprido, etiqueta "fonte".
+- Séries: lembrar a votação anterior no primeiro segundo, contador fixo ("FALTAM 26"), medidor que sobe a cada episódio, exageros cômicos curtos em escada ("a primeira tesoura entorta, a segunda pede demissão") e a votação do próximo episódio no fim.
+- O vídeo que mais performou (407 mil views) juntou: pergunta polêmica no topo, fonte de autoridade, 4 pontos com um ícone cada, opinião do narrador no último ponto, contraponto justo e pergunta binária no fim.
+
+## 11. Antes de entregar o roteiro, confira
 - O gancho está claro e nada compete com ele; a história avança e o payoff e a chamada aterrissam.
 - Cada cena esclarece, prova, dá ritmo ou intensifica; nada é ilustração genérica de substantivo.
 - Personagem, lugar e paleta são coerentes entre cenas.

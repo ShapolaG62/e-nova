@@ -151,7 +151,9 @@ async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string,
   // voz
   await progresso(`Cena ${cenaId}: gravando a narração…`);
   const rv = await comPaciencia(
-    () => executar("voz", { prompt: cena.narracao, voz: brief.voz, idioma: "pt-BR" }, { userId: p.userId, preferir: ehVozMicrosoft(brief.voz) ? "edge-tts" : undefined }),
+    () => executar("voz", { prompt: cena.narracao, voz: brief.voz, idioma: "pt-BR" }, brief.voz?.startsWith("minha:")
+      ? { userId: p.userId, somente: ["minha-voz-cartesia", "minha-voz-local"], timeoutMs: 6 * 60_000 } // voz clonada: Cartesia, depois o computador
+      : { userId: p.userId, preferir: ehVozMicrosoft(brief.voz) ? "edge-tts" : undefined }),
     (e) => progresso(`Cena ${cenaId}: ${e}`),
   );
   const audio = await baixarSaida(rv);

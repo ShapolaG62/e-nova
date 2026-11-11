@@ -30,7 +30,7 @@ const briefSchema = z.object({
   visual: z.enum(["imagem", "video", "misto"]),
   fonteVisual: z.enum(["banco", "referencia", "ia"]).default("banco"),
   estiloVisual: z.string().trim().max(400).optional(),
-  voz: z.string().trim().max(100).optional(),
+  voz: z.string().trim().max(100).optional(), // id Microsoft, ElevenLabs/Cartesia ou "minha:<uuid>"
   cta: z.string().trim().max(200).optional(),
   legendas: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
   musica: z.preprocess((v) => v === "on" || v === "true", z.boolean()),

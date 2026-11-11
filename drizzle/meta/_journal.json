@@ -71,6 +71,13 @@
       "when": 1794362224115,
       "tag": "0009_autoaprendizado",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794367413642,
+      "tag": "0010_minha_voz",
+      "breakpoints": true
     }
   ]
 }

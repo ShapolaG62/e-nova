@@ -185,6 +185,21 @@ export const edge: Adaptador = async (cap, e, { sinal, progresso }) => {
   } finally { await rm(dir, { recursive: true, force: true }); }
 };
 
+// ───────── Minha voz no computador (Chatterbox Multilingual, MIT) ─────────
+export const vozLocal: Adaptador = async (cap, e, { sinal, progresso }) => {
+  if (cap !== "voz") throw naoFaz("Voz no computador", cap);
+  const { vozDoId, falarLocal } = await import("@/lib/voz");
+  const v = await vozDoId(e.voz);
+  if (!v) throw new FalhaProvedor("A voz no computador só fala com uma voz da tela Minha voz", "nao-suporta");
+  await progresso?.(15, "Carregando a sua voz no computador (a 1ª vez demora)…");
+  try {
+    const mp3 = await falarLocal(v.amostraChave, exigirPrompt(e, "Voz no computador"), sinal);
+    return { arquivos: [{ buffer: mp3, mime: "audio/mpeg", nome: "narracao.mp3" }] };
+  } catch (err) {
+    throw new FalhaProvedor(`Voz no computador: ${err instanceof Error ? err.message : String(err)}`, "fora");
+  }
+};
+
 // ───────── Imagem no próprio servidor: tirar fundo (RMBG-1.4) e ampliar ─────────
 const g = globalThis as unknown as { __rmbg?: Promise<{ model: any; processor: any; T: any }> };
 async function rmbg() {

@@ -960,3 +960,24 @@ export const aprendizadoEventos = pgTable(
   (t) => [index("aprendizado_area_idx").on(t.area, t.createdAt), index("aprendizado_alvo_idx").on(t.alvoId)],
 );
 export type AprendizadoEvento = typeof aprendizadoEventos.$inferSelect;
+
+// ═══ Minha voz (voz clonada) ═══════════════════════════════════════════════
+// A pessoa grava ou envia de 10 s a 60 s da própria voz. A voz é criada na Cartesia (nuvem)
+// e/ou usada no modelo aberto do próprio computador (Chatterbox), que fica de reserva grátis.
+export const vozes = pgTable(
+  "vozes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nome: varchar("nome", { length: 80 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("PROCESSANDO"), // PROCESSANDO | PRONTA | FALHOU
+    amostraChave: text("amostra_chave").notNull(),        // WAV limpo (mono 24 kHz) — referência do modelo local
+    duracao: real("duracao").notNull().default(0),
+    cartesiaId: varchar("cartesia_id", { length: 80 }),   // id da voz clonada na Cartesia (se houver chave)
+    cartesiaErro: text("cartesia_erro"),
+    consentimento: jsonb("consentimento").$type<{ texto: string; aceitoEm: string; userId: string }>().notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [index("vozes_user_idx").on(t.userId, t.createdAt)],
+);
+export type Voz = typeof vozes.$inferSelect;

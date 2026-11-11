@@ -51,6 +51,7 @@ export const CREDENCIAIS: Credencial[] = [
   { id: "openrouter", nome: "OpenRouter (modelos grátis)", campos: [{ id: "apiKey", rotulo: "API key", segredo: true }], ondePegar: "https://openrouter.ai/keys", observacao: "Chave grátis; usa os modelos marcados como :free (limite diário)." },
   { id: "cloudflare", nome: "Cloudflare Workers AI", campos: [{ id: "accountId", rotulo: "Account ID" }, { id: "apiToken", rotulo: "API token", segredo: true }], ondePegar: "https://dash.cloudflare.com/profile/api-tokens", observacao: "Plano grátis diário: texto (Llama) e imagem (FLUX schnell)." },
   { id: "huggingface", nome: "Hugging Face", campos: [{ id: "apiKey", rotulo: "Token", segredo: true }], ondePegar: "https://huggingface.co/settings/tokens", observacao: "Token grátis: imagens com FLUX schnell (cota mensal)." },
+  { id: "voz-local", nome: "Minha voz no computador (grátis)", campos: [], ondePegar: "https://github.com/resemble-ai/chatterbox", observacao: "Modelo aberto Chatterbox (licença MIT) rodando na sua máquina, de preferência com placa NVIDIA. Usa as vozes da tela Minha voz." },
   { id: "edge", nome: "Vozes da Microsoft (grátis)", campos: [], ondePegar: "https://speech.microsoft.com", observacao: "Vozes neurais em português, sem chave. Já vem ligado." },
   { id: "imagem-local", nome: "Imagem no servidor (grátis)", campos: [], ondePegar: "https://huggingface.co/briaai/RMBG-1.4", observacao: "Tira fundo (RMBG-1.4) e amplia no próprio servidor. Na 1ª vez baixa o modelo (~180 MB)." },
   // ───────── grátis com chave (catálogo do Free Claude Code) ─────────
@@ -179,6 +180,9 @@ export const CATALOGO: ItemCatalogo[] = [
   { id: "pollinations-imagem", nome: "Pollinations (imagem grátis, FLUX)", empresa: "Pollinations", capacidades: { imagem: 5 }, custo: 0, rotas: [dir("pollinations")], nota: "Sem chave. Reserva grátis de imagens." },
   { id: "hf-flux", nome: "Hugging Face (FLUX schnell grátis)", empresa: "Hugging Face", capacidades: { imagem: 5 }, custo: 0, rotas: [dir("huggingface", "black-forest-labs/FLUX.1-schnell")] },
   { id: "edge-tts", nome: "Vozes neurais da Microsoft (grátis)", empresa: "Microsoft", capacidades: { voz: 6 }, custo: 0, rotas: [dir("edge")], nota: "Francisca, Thalita, Antônio e Macério em português. Sem chave." },
+  // vozes clonadas (tela Minha voz): só entram quando a voz escolhida é "minha:<id>"
+  { id: "minha-voz-cartesia", nome: "Minha voz (Cartesia)", empresa: "Cartesia", capacidades: { voz: 2 }, custo: 1, rotas: [dir("cartesia", "sonic-3.6")], nota: "Voz clonada na tela Minha voz." },
+  { id: "minha-voz-local", nome: "Minha voz (no computador)", empresa: "Chatterbox (local)", capacidades: { voz: 1 }, custo: 0, rotas: [dir("voz-local")], nota: "Reserva grátis da voz clonada; precisa do modelo instalado em tools/voz-local." },
   { id: "imagem-local", nome: "Tirar fundo e ampliar no servidor", empresa: "E-Nova (local)", capacidades: { "editar-imagem": 5 }, custo: 0, rotas: [dir("imagem-local")], nota: "RMBG-1.4 para fundo; ampliação clássica 2x/4x." },
 
   // ───────── Infraestrutura ─────────

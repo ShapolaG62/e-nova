@@ -13,6 +13,8 @@ const RECEITAS: Record<Exclude<Som, "nenhum">, { expr: string; dur: number; filt
   ding: { expr: "0.6*sin(2*PI*1320*t)*exp(-4*t)+0.25*sin(2*PI*2640*t)*exp(-6*t)", dur: 1.5 },
   notificacao: { expr: "0.5*sin(2*PI*880*t)*lt(t,0.12)+0.5*sin(2*PI*1320*t)*gt(t,0.16)*lt(t,0.3)", dur: 0.5, filtro: "afade=t=out:st=0.3:d=0.2" },
   susto: { expr: "0.45*sin(2*PI*(700+2600*t)*t)*exp(-2.2*t)+0.5*(random(0)*2-1)*exp(-7*t)", dur: 1.3, filtro: "highpass=f=200" },
+  whoosh: { expr: "(random(0)*2-1)*0.7*sin(PI*t/0.45)*lt(t,0.45)", dur: 0.5, filtro: "bandpass=f=1400:w=1800,afade=t=out:st=0.3:d=0.2" },
+  tique: { expr: "0.35*sin(2*PI*2200*t)*exp(-60*mod(t,0.09))", dur: 0.9, filtro: "highpass=f=900,afade=t=out:st=0.6:d=0.3" },
   latido: { expr: "0.7*sin(2*PI*(430-260*mod(t,0.42))*t)*exp(-12*mod(t,0.42))*lt(mod(t,0.42),0.2)", dur: 1, filtro: "lowpass=f=2500" },
 };
 
