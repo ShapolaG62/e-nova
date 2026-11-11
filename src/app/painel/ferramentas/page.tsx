@@ -5,6 +5,7 @@ import { can } from "@/lib/auth/rbac";
 import { PageHeader, PageSkeleton } from "@/components/page";
 import { candidatos } from "@/lib/ia-hub/roteador";
 import { chavePixabay } from "@/lib/ferramentas/pixabay";
+import { chaveGiphy } from "@/lib/ferramentas/giphy-emojis";
 import { ehFerramenta } from "@/lib/ferramentas/catalogo";
 import { Ferramentas } from "./ferramentas";
 
@@ -29,11 +30,12 @@ export default function Page(props: Props) {
 async function Conteudo({ searchParams }: Props) {
   const me = await requirePermission("ai:use");
   const { f } = await searchParams;
-  const [chave, texto] = await Promise.all([chavePixabay().catch(() => null), candidatos("texto").catch(() => [])]);
+  const [chave, texto, giphy] = await Promise.all([chavePixabay().catch(() => null), candidatos("texto").catch(() => []), chaveGiphy().catch(() => null)]);
   return (
     <Ferramentas
       inicial={ehFerramenta(f) ? f : null}
       temChavePixabay={!!chave}
+      temChaveGiphy={!!giphy}
       iaPronta={texto.some((c) => c.temChave)}
       podeConfigurar={can(me.role, "system:view")}
     />

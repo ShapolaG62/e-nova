@@ -15,6 +15,7 @@ const CenaSchema = z.object({
   textoNaTela: z.string().optional().describe("Texto curto que aparece na tela (ex.: número do item, palavra-chave). Opcional."),
   tipoVisual: z.enum(["imagem", "video"]).describe("imagem = foto/ilustração com movimento de câmera; video = clipe gerado com ação"),
   promptVisual: z.string().min(10).describe("Prompt EM INGLÊS para o gerador de imagem/vídeo, seguindo as regras de direção de imagem"),
+  busca: z.string().max(60).optional().describe("2 a 4 palavras EM INGLÊS para achar uma foto/vídeo pronto num banco de imagens (ex.: \"bakery bread morning\"). Concreto e visual, sem nomes próprios."),
   camera: z.string().optional().describe("Movimento: aproximar, afastar, panoramica-esquerda, panoramica-direita, parado"),
   duracaoAlvo: z.number().min(1.5).max(12).describe("Segundos estimados desta cena"),
 });
@@ -101,6 +102,7 @@ export async function escreverRoteiro(brief: VideoBrief, o: { userId?: string | 
     brief.publico ? `Público: ${brief.publico}` : "",
     brief.tom ? `Tom: ${brief.tom}` : "",
     animadoTexto(brief),
+    brief.estilo !== "animacao" && brief.fonteVisual !== "ia" ? "Preencha \"busca\" em todas as cenas: as imagens virão de um banco de fotos e vídeos prontos (Pixabay), então descreva o que é fotografável de verdade." : "",
     `Material visual: ${brief.visual === "imagem" ? "só imagens (todas as cenas tipoVisual=imagem)" : brief.visual === "video" ? "clipes de vídeo gerado em todas as cenas" : "misture: vídeo onde a ação/movimento importa, imagem no resto"}`,
     brief.estiloVisual ? `Estilo visual pedido: ${brief.estiloVisual}` : "",
     brief.cta ? `Chamada para ação final: ${brief.cta}` : "",
@@ -112,7 +114,7 @@ export async function escreverRoteiro(brief: VideoBrief, o: { userId?: string | 
   const schema = animado ? RoteiroAnimSchema : RoteiroSchema;
   const { licoesParaPrompt } = await import("@/lib/aprendizado");
   const aprendido = await licoesParaPrompt("videos");
-  type CenaSolta = { narracao: string; textoNaTela?: string; tipoVisual?: "imagem" | "video"; promptVisual?: string; camera?: string; duracaoAlvo?: number; anim?: z.infer<typeof AnimCenaSchema> };
+  type CenaSolta = { narracao: string; textoNaTela?: string; tipoVisual?: "imagem" | "video"; promptVisual?: string; busca?: string; camera?: string; duracaoAlvo?: number; anim?: z.infer<typeof AnimCenaSchema> };
   let dados: { titulo: string; gancho: string; tratamento: string; estiloVisual: string; personagens?: { nome: string; descricao: string }[]; musica?: string; anim?: z.infer<typeof AnimVideoSchema>; cenas: CenaSolta[] } | undefined;
   const r = await executar(
     "texto",
@@ -147,7 +149,7 @@ ${aprendido}` : ""}`, prompt, schemaJson: z.toJSONSchema(schema) as Record<strin
       id: `c${i + 1}`,
       narracao: c.narracao.trim(),
       textoNaTela: c.textoNaTela?.trim() || undefined,
-      visual: { tipo: animado || brief.visual === "imagem" ? "imagem" : brief.visual === "video" ? "video" : (c.tipoVisual ?? "imagem"), prompt: (c.promptVisual ?? c.narracao).trim(), camera: c.camera },
+      visual: { tipo: animado || brief.visual === "imagem" ? "imagem" : brief.visual === "video" ? "video" : (c.tipoVisual ?? "imagem"), prompt: (c.promptVisual ?? c.narracao).trim(), camera: c.camera, ...(c.busca?.trim() ? { busca: c.busca.trim().slice(0, 60) } : {}) },
       duracaoAlvo: c.duracaoAlvo ?? Math.max(2, Math.round(c.narracao.split(/s+/).length / 2.5)),
       ...(c.anim ? { anim: c.anim } : {}),
     })),

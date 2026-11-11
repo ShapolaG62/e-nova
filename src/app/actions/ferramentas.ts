@@ -17,7 +17,8 @@ import { itemCatalogo } from "@/lib/ia-hub/catalogo";
 import { apagarUpload, arquivoDoUpload, MAX_BYTES, pastaTrabalho, publicar, type ArquivoPronto } from "@/lib/ferramentas/arquivos";
 import { baixar, lerLink, validarLink, type InfoLink, type Opcao } from "@/lib/ferramentas/baixador";
 import { comprimirUm, compactarZip, converterUm, cortar, imagensParaPdf, NIVEIS, tipoDe, TODOS_FORMATOS, webmParaMp4 } from "@/lib/ferramentas/midia";
-import { buscarPixabay, chavePixabay, salvarChavePixabay, urlPixabayValida, type ItemMidia } from "@/lib/ferramentas/pixabay";
+import { buscarPixabay, CATEGORIAS_PIXABAY, chavePixabay, salvarChavePixabay, urlMidiaValida, type ItemMidia } from "@/lib/ferramentas/pixabay";
+import { buscarEmojis, buscarGiphy, CATEGORIAS_EMOJI, chaveGiphy, salvarChaveGiphy } from "@/lib/ferramentas/giphy-emojis";
 import { gerarQr } from "@/lib/ferramentas/qr";
 import { criarSessao, conferirToken, ipLocal, removerDaMesa } from "@/lib/ferramentas/celular";
 import { cotacoes, criarCaixa, historico, lerMensagem, listarMensagens, type MensagemResumo } from "@/lib/ferramentas/servicos";
@@ -205,7 +206,7 @@ export async function salvarChavePixabayAction(chave: string | null): Promise<Re
   try {
     if (!can(me.role, "system:view")) throw new Error("Só administradores podem trocar a chave da Pixabay.");
     const limpa = chave === null ? null : z.string().trim().regex(/^[\w-]{10,80}$/, "Essa chave não parece da Pixabay.").parse(chave);
-    if (limpa) await buscarPixabay(limpa, "praia", "foto", 1); // confere antes de salvar
+    if (limpa) await buscarPixabay(limpa, { termo: "praia", tipo: "foto", pagina: 1 }); // confere antes de salvar
     await salvarChavePixabay(limpa);
     await audit(me, limpa ? "ferramentas.pixabay.salvar" : "ferramentas.pixabay.remover");
     return { ok: true, dados: null };
@@ -214,14 +215,48 @@ export async function salvarChavePixabayAction(chave: string | null): Promise<Re
   }
 }
 
-export async function buscarMidiaAction(input: { termo: string; tipo: "foto" | "video"; pagina: number }): Promise<Resultado<{ itens: ItemMidia[]; total: number }>> {
+export async function salvarChaveGiphyAction(chave: string | null): Promise<Resultado<null>> {
   const me = await requirePermission("ai:use");
   try {
-    const d = z.object({ termo: z.string().trim().max(100), tipo: z.enum(["foto", "video"]), pagina: z.number().int().min(1).max(50) }).parse(input);
-    await limite(me, "pixabay", 90, 60);
+    if (!can(me.role, "system:view")) throw new Error("Só administradores podem trocar a chave do GIPHY.");
+    const limpa = chave === null ? null : z.string().trim().regex(/^[\w-]{16,80}$/, "Essa chave não parece do GIPHY.").parse(chave);
+    if (limpa) await buscarGiphy(limpa, { termo: "", tipo: "gifs", pagina: 1 }); // confere antes de salvar
+    await salvarChaveGiphy(limpa);
+    await audit(me, limpa ? "ferramentas.giphy.salvar" : "ferramentas.giphy.remover");
+    return { ok: true, dados: null };
+  } catch (e) {
+    return falha(e);
+  }
+}
+
+const buscaSchema = z.object({
+  aba: z.enum(["tudo", "foto", "ilustracao", "vetor", "video", "gifs", "stickers", "emojis"]),
+  termo: z.string().trim().max(100),
+  pagina: z.number().int().min(1).max(60),
+  categoria: z.string().max(40).optional(),
+  ordem: z.enum(["popular", "latest"]).optional(),
+  destaques: z.boolean().optional(),
+});
+
+/** Uma busca para todas as fontes do Banco de mídia. Sem termo: navega pelos populares / em alta. */
+export async function buscarMidiaAction(input: z.input<typeof buscaSchema>): Promise<Resultado<{ itens: ItemMidia[]; total: number }>> {
+  const me = await requirePermission("ai:use");
+  try {
+    const d = buscaSchema.parse(input);
+    await limite(me, "banco-midia", 150, 60);
+    if (d.aba === "emojis") {
+      const cat = CATEGORIAS_EMOJI.some(([id]) => id === d.categoria) ? d.categoria : undefined;
+      return { ok: true, dados: await buscarEmojis({ termo: d.termo, categoria: cat, pagina: d.pagina }) };
+    }
+    if (d.aba === "gifs" || d.aba === "stickers") {
+      const chave = await chaveGiphy();
+      if (!chave) throw new Error("SEM_CHAVE_GIPHY");
+      return { ok: true, dados: await buscarGiphy(chave, { termo: d.termo, tipo: d.aba, pagina: d.pagina }) };
+    }
     const chave = await chavePixabay();
     if (!chave) throw new Error("A chave da Pixabay ainda não foi configurada.");
-    return { ok: true, dados: await buscarPixabay(chave, d.termo || "natureza", d.tipo, d.pagina) };
+    const categoria = CATEGORIAS_PIXABAY.find(([id]) => id === d.categoria)?.[0] ?? "";
+    return { ok: true, dados: await buscarPixabay(chave, { termo: d.termo, tipo: d.aba, pagina: d.pagina, categoria, ordem: d.ordem, destaques: d.destaques }) };
   } catch (e) {
     return falha(e);
   }
@@ -232,8 +267,8 @@ export async function salvarMidiaAction(input: { url: string; nome: string }): P
   const me = await requirePermission("ai:use");
   try {
     const d = z.object({ url: z.string().url().max(2000), nome: z.string().trim().max(120) }).parse(input);
-    if (!urlPixabayValida(d.url)) throw new Error("Link fora da Pixabay.");
-    await limite(me, "pixabay-baixar", 40, 600);
+    if (!urlMidiaValida(d.url)) throw new Error("Link fora das fontes do Banco de mídia.");
+    await limite(me, "banco-midia-baixar", 60, 600);
     const r = await safeFetch(d.url, { signal: AbortSignal.timeout(5 * 60_000) });
     if (!r.ok || !r.body) throw new Error(`A Pixabay não entregou o arquivo (${r.status}).`);
     const tam = Number(r.headers.get("content-length") ?? 0);

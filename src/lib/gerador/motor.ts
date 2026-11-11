@@ -14,6 +14,7 @@ import type { SaidaIA } from "@/lib/ia-hub/tipos";
 import { escreverRoteiro, promptDaCena } from "./diretor";
 import { DIMENSOES } from "./formatos";
 import { quemFaz } from "./quem";
+import { midiaDoBanco, midiaEscolhida } from "./banco";
 import { renderAnimacao, type CenaRender } from "./animacao/render";
 import type { AnimCena } from "./animacao/tipos";
 
@@ -88,7 +89,7 @@ async function comPaciencia<T>(fn: () => Promise<T>, avisar: (etapa: string) => 
 
 const ehVozMicrosoft =(v?: string) => !!v && /^[a-z]{2}-[A-Z]{2}-\w+Neural$/.test(v);
 
-async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string, progresso: (etapa: string) => Promise<void>): Promise<VideoCenaProducao> {
+async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string, progresso: (etapa: string) => Promise<void>, usados: Set<string> = new Set()): Promise<VideoCenaProducao> {
   const cena = roteiro.cenas.find((c) => c.id === cenaId)!;
   const brief = p.brief;
   const out: VideoCenaProducao = { id: cenaId, status: "PRONTA" };
@@ -98,7 +99,27 @@ async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string,
   const animado = brief.estilo === "animacao";
   const prompt = promptDaCena(roteiro, cena.visual.prompt, brief.proporcao);
   let visual: { buffer: Buffer; mime: string } | null = null;
-  if (!animado && cena.visual.tipo === "video") {
+  const fonte = brief.fonteVisual ?? "ia";
+
+  // 1) mídia escolhida à mão no editor (Banco de mídia)
+  if (!animado && cena.visual.escolhida) {
+    try {
+      await progresso(`Cena ${cenaId}: usando a mídia escolhida…`);
+      const m = await midiaEscolhida(cena.visual.escolhida);
+      visual = m; out.usadoVisual = "banco-de-midia"; out.midiaBanco = { url: m.item.url, pagina: m.item.pagina, autor: m.item.autor, fonte: m.item.fonte };
+    } catch (e) { out.erro = `A mídia escolhida não baixou; procurei outra. ${msg(e).slice(0, 200)}`; }
+  }
+  // 2) Banco de mídia primeiro: foto/vídeo pronto, grátis e sem gastar IA
+  let exemplo: Awaited<ReturnType<typeof midiaDoBanco>> = null;
+  if (!animado && !visual && (fonte === "banco" || fonte === "referencia")) {
+    await progresso(`Cena ${cenaId}: procurando no Banco de mídia…`);
+    exemplo = await midiaDoBanco(brief, cena, usados, fonte === "referencia" ? { so: "foto" } : {}).catch(() => null);
+    if (exemplo && fonte === "banco") {
+      visual = exemplo; out.usadoVisual = "banco-de-midia";
+      out.midiaBanco = { url: exemplo.item.url, pagina: exemplo.item.pagina, autor: exemplo.item.autor, fonte: exemplo.item.fonte };
+    }
+  }
+  if (!visual && !animado && cena.visual.tipo === "video") {
     try {
       await progresso(`Cena ${cenaId}: gerando o clipe de vídeo…`);
       const r = await executar("video", { prompt, proporcao: brief.proporcao, duracao: cena.duracaoAlvo > 6 ? 10 : 5 }, { userId: p.userId, progresso: (_n, e) => (e ? progresso(`Cena ${cenaId}: ${e}`) : undefined) });
@@ -110,8 +131,12 @@ async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string,
   }
   if (!visual && !animado) {
     await progresso(`Cena ${cenaId}: desenhando a imagem…`);
+    // 3) IA — no modo referência, a foto do banco vai junto como EXEMPLO a seguir (composição, luz, assunto)
+    const ref = fonte === "referencia" && exemplo && exemplo.mime.startsWith("image/") ? `data:${exemplo.mime};base64,${exemplo.buffer.toString("base64")}` : undefined;
+    const pedido = ref ? `${prompt} Use the reference image only as an example to follow for composition, lighting and subject; create a new, original image (do not copy it).` : prompt;
+    if (ref && exemplo) out.midiaBanco = { url: exemplo.item.url, pagina: exemplo.item.pagina, autor: exemplo.item.autor, fonte: `${exemplo.item.fonte} (exemplo)` };
     const r = await comPaciencia(
-      () => executar("imagem", { prompt, proporcao: brief.proporcao }, { userId: p.userId, progresso: (_n, e) => (e ? progresso(`Cena ${cenaId}: ${e}`) : undefined) }),
+      () => executar("imagem", { prompt: pedido, proporcao: brief.proporcao, ...(ref ? { imagemUrl: ref } : {}) }, { userId: p.userId, progresso: (_n, e) => (e ? progresso(`Cena ${cenaId}: ${e}`) : undefined) }),
       (e) => progresso(`Cena ${cenaId}: ${e}`),
     );
     visual = await baixarSaida(r);
@@ -146,6 +171,7 @@ export async function produzir(id: string, o: { refazer?: string[] } = {}) {
     return atual && atual.status === "PRONTA" && !o.refazer?.includes(c.id) ? atual : { id: c.id, status: "PENDENTE" as const };
   });
   const fila = cenas.filter((c) => c.status !== "PRONTA").map((c) => c.id);
+  const usados = new Set(cenas.flatMap((c) => (c.midiaBanco?.url ? [c.midiaBanco.url] : [])));
   await atualizar(id, { status: "PRODUZINDO", progresso: 3, etapa: "Preparando as cenas…", erro: null, cenas });
 
   let feitas = 0;
@@ -160,7 +186,7 @@ export async function produzir(id: string, o: { refazer?: string[] } = {}) {
     await salvar(undefined, true);
     let r: VideoCenaProducao;
     try {
-      r = await gerarCena(p, roteiro, cenaId, (etapa) => salvar(etapa));
+      r = await gerarCena(p, roteiro, cenaId, (etapa) => salvar(etapa), usados);
     } catch (e) {
       r = { id: cenaId, status: "FALHOU", erro: msg(e).slice(0, 600) };
     }
@@ -170,7 +196,7 @@ export async function produzir(id: string, o: { refazer?: string[] } = {}) {
   };
   const pendentes = [...fila];
   // só IA de imagem grátis (limite por IP): uma cena por vez para não brigar pela vez
-  const imagemSoGratis = p.brief.estilo === "animacao" ? false : ((await quemFaz(["imagem"]))[0]?.gratis ?? true);
+  const imagemSoGratis = p.brief.estilo === "animacao" || p.brief.fonteVisual === "banco" ? false : ((await quemFaz(["imagem"]))[0]?.gratis ?? true);
   await Promise.all(Array.from({ length: Math.min(imagemSoGratis ? 1 : 3, pendentes.length) }, async () => {
     for (let c = pendentes.shift(); c; c = pendentes.shift()) await trabalhar(c);
   }));

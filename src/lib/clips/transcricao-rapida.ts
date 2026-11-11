@@ -62,9 +62,9 @@ async function transcreverPedaco(buffer: Buffer, nome: string, userId: string | 
         return await executar("transcricao", entrada, { userId, timeoutMs: 90_000, somente: nuvem });
       } catch (e) {
         if (!(e instanceof SemProvedor)) throw e;
-        const passageiro = e.tentativas.every((t) => /((429|500|502|503|504))|tempo esgotado|limite|fora do ar/i.test(t.erro ?? ""));
+        const passageiro = e.tentativas.every((t) => /\((429|500|502|503|504)\)|tempo esgotado|limite|fora do ar/i.test(t.erro ?? ""));
         if (!passageiro || volta === 3) break;
-        const pedido = Math.max(0, ...e.tentativas.map((t) => Number(/retry[^0-9]{0,20}(d+(?:.d+)?)s*s/i.exec(t.erro ?? "")?.[1] ?? 0)));
+        const pedido = Math.max(0, ...e.tentativas.map((t) => Number(/retry[^0-9]{0,20}(\d+(?:\.\d+)?)\s*s/i.exec(t.erro ?? "")?.[1] ?? 0)));
         const espera = Math.min(30, Math.max(4 * volta, pedido + 1)) + Math.random() * 2;
         await avisar(`IA cheia, tentando de novo em ${Math.round(espera)} s`);
         await new Promise((r) => setTimeout(r, espera * 1000));

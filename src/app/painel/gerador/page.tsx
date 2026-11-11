@@ -82,6 +82,14 @@ async function Conteudo() {
             </div>
           </div>
           <div className="grid gap-1.5">
+            <label htmlFor="fonteVisual" className="text-sm font-medium">De onde vêm as imagens? <span className="font-normal text-muted-foreground">(só no estilo com IA)</span></label>
+            <select id="fonteVisual" name="fonteVisual" defaultValue="banco" className={sel}>
+              <option value="banco">Banco de mídia: fotos e vídeos prontos (grátis, rápido); IA só se faltar</option>
+              <option value="referencia">IA criando imagens novas seguindo um exemplo do banco</option>
+              <option value="ia">Só IA (gera todas as imagens)</option>
+            </select>
+          </div>
+          <div className="grid gap-1.5">
             <label htmlFor="visual" className="text-sm font-medium">Imagens ou clipes? <span className="font-normal text-muted-foreground">(só no estilo com IA)</span></label>
             <select id="visual" name="visual" defaultValue="imagem" className={sel}>
               <option value="imagem">Imagens com movimento de câmera (mais barato e rápido)</option>
