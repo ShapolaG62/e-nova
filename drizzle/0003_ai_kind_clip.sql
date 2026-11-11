@@ -1,0 +1,1 @@
+ALTER TYPE "public"."ai_kind" ADD VALUE 'CLIP_ANALYSIS';

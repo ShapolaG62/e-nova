@@ -1,0 +1,76 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794254186998,
+      "tag": "0000_init",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794262513881,
+      "tag": "0001_modulos_2_a_5",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794267185449,
+      "tag": "0002_ia_local_estoque_paginas_cortes_seguranca",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794267973053,
+      "tag": "0003_ai_kind_clip",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794268588615,
+      "tag": "0004_alerta_seguranca",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794270838629,
+      "tag": "0005_cortes_por_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794341268069,
+      "tag": "0006_vendas_prospeccao_sites",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794345260717,
+      "tag": "0007_central_de_ia",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794353861045,
+      "tag": "0008_gerador_de_videos",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794362224115,
+      "tag": "0009_autoaprendizado",
+      "breakpoints": true
+    }
+  ]
+}

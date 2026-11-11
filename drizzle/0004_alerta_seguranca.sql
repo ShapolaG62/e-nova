@@ -1,0 +1,1 @@
+ALTER TYPE "public"."alert_event_kind" ADD VALUE 'SECURITY';
