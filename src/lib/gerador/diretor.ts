@@ -5,7 +5,7 @@ import { executar } from "@/lib/ia-hub/roteador";
 import { FalhaProvedor } from "@/lib/ia-hub/tipos";
 import { CONHECIMENTO } from "./conhecimento";
 import { formato } from "./formatos";
-import { ACOES, CARTOES, CARTOES_HISTORIA, CENARIOS, EFEITOS, OBJETOS, PALETAS, SONS } from "./animacao/tipos";
+import { ACOES, CABELOS, CARTOES, CARTOES_HISTORIA, CENARIOS, EFEITOS, EXPRESSOES, OBJETOS, PALETAS, SONS } from "./animacao/tipos";
 
 // O "diretor": transforma o brief em tratamento + roteiro decupado em cenas,
 // usando o ofício de direção aprendido da skill hypit (ver conhecimento.ts).
@@ -41,6 +41,10 @@ const AnimCenaSchema = z.object({
   secao: z.object({ n: z.number().int().min(1), total: z.number().int().min(2).max(8), titulo: z.string().max(22) }).optional().describe("Ponto numerado do vídeo: 1/3 AS HORAS"),
   fonte: z.string().max(34).optional().describe("De onde vem a informação (ex.: AJUDA DO YOUTUBE). Só com fonte real do brief."),
   medidor: z.object({ rotulo: z.string().max(14), pct: z.number().min(0).max(100), de: z.number().min(0).max(100).optional() }).optional().describe("Barra de progresso fixa da série (ex.: LIMPEZA de 50 para 65)"),
+  quem: z.array(z.object({ nome: z.string().max(20), expressao: z.enum(EXPRESSOES).optional() })).max(2).optional().describe("Personagens do elenco nesta cena (até 2), pelo nome, com a expressão do momento"),
+  plano: z.enum(["geral", "close"]).optional().describe("close = rosto grande, para reação forte"),
+  placar: z.object({ valor: z.string().max(16), antes: z.string().max(16).optional() }).optional().describe("Painel de LED com um número que importa (ex.: o andar). antes = valor anterior: o painel conta de um para o outro e mostra seta verde (sobe) ou vermelha (desce)"),
+  movimento: z.enum(["subindo", "descendo"]).optional().describe("No cenário predio: a câmera sobe ou desce pelos andares"),
 });
 const AnimVideoSchema = z.object({
   episodio: z.string().max(28).optional().describe("Etiqueta fixa (ex.: 'EP. 1 · O ELEVADOR')"),
@@ -48,6 +52,11 @@ const AnimVideoSchema = z.object({
   escolha: z.object({ a: z.string().max(60), b: z.string().max(60) }).optional().describe("As duas opções finais (formato Você decide)"),
   manchete: z.string().max(60).optional().describe("Pergunta curta (até 40 letras) fixa no topo o vídeo todo, com a palavra-chave entre *asteriscos* (ex.: 'GTA 6 vai ser *lento* demais?')"),
   contagem: z.string().max(20).optional().describe("Contador fixo da série (ex.: 'FALTAM 26', 'DIA 4/30')"),
+  elenco: z.array(z.object({
+    nome: z.string().max(20), pele: z.string().regex(/^#[0-9a-fA-F]{6}$/), cabelo: z.enum(CABELOS), corCabelo: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    roupa: z.string().regex(/^#[0-9a-fA-F]{6}$/), calca: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), idade: z.enum(["crianca", "adulto", "idoso"]),
+    oculos: z.boolean().optional(), barba: z.boolean().optional(),
+  })).max(4).optional().describe("Personagens de desenho fixos do vídeo (até 4), com aparência bem diferente entre si"),
 });
 // sem os campos de imagem (não usados aqui): a resposta fica curta o bastante para as IAs grátis
 const CenaAnimSchema = z.object({ narracao: z.string().min(2), anim: AnimCenaSchema });
@@ -99,6 +108,15 @@ Não há imagens geradas: cada cena é DESENHADA pelo E-Nova a partir do campo "
 - anim.episodio: etiqueta fixa da série; anim.corPersonagem: uma cor forte (ex.: #e23a3a) usada no vídeo todo.
 - No formato "Você decide", a ÚLTIMA cena narra as duas opções e o pedido "Comente A ou B"; preencha anim.escolha com as opções (curtas). A tela de escolha aparece sozinha na última cena.
 - Série diária (ex.: "30 dias para…"): anim.contagem com o que falta ("FALTAM 26"), medidor com o progresso que muda neste episódio (de → pct), primeira cena lembra o resultado da votação anterior, última cena abre a votação do próximo (anim.escolha).
+
+## Personagens de desenho (elenco fixo)
+Para histórias com gente (crianças, família, trabalho, "neste planeta…"), crie anim.elenco com 2 a 4 personagens de desenho 2D e use-os nas cenas com "quem". Eles saem idênticos em todas as cenas.
+- Cada personagem: nome curto, pele (#hex realista: de #f2c9a5 a #5c3a24), cabelo (curto, cacheado, black, longo, coque, franja, careca, bone), corCabelo, roupa (cor forte e DIFERENTE entre eles, ex.: verde para um, vermelho para o outro), idade (crianca, adulto, idoso). Contraste visual ajuda o público a reconhecer quem é quem.
+- quem: até 2 por cena, com a expressão do momento (feliz, rindo, triste, chorando, surpreso, bravo, preocupado, neutro). A expressão segue a emoção da fala.
+- acao continua valendo para o corpo (parado, andando, correndo, sentado, celular, apontando, assustado). Use "sem-personagem" para cenas só de ambiente.
+- plano "close" nas reações fortes (surpresa, choro, alegria). Alterne geral e close para dar ritmo.
+- Cenários do "mundo do prédio": predio (fachada cheia de janelas; com quem, a pessoa aparece numa janela acesa; movimento subindo/descendo passa pelos andares), apto-simples (parede rachada, lâmpada pendurada, colchão no chão), apto-rico (janelão acima das nuvens, lustre, sofá). Paletas "suave" (bege, aconchegante) e "dia" (claro, céu azul) combinam com esse estilo.
+- placar: o número que manda na regra do mundo (andar, saldo, pontos). Mostre-o quando ele muda, com antes → valor.
 
 ## Infográfico animado (notícia, números, "o que muda")
 Para assunto de notícia, regra, número, comparação ou explicação com dados, use cenario "painel" (fundo escuro de infográfico), acao "sem-personagem" e conte a história com as peças:
@@ -262,6 +280,26 @@ function sanear(j: unknown): unknown {
     const m = a.medidor as { rotulo?: unknown; pct?: unknown; de?: unknown } | undefined;
     const mp = num(m?.pct), md = num(m?.de);
     a.medidor = m && typeof m.rotulo === "string" && mp !== undefined ? { rotulo: m.rotulo.slice(0, 14), pct: Math.max(0, Math.min(100, mp)), ...(md !== undefined ? { de: Math.max(0, Math.min(100, md)) } : {}) } : undefined;
+    a.quem = Array.isArray(a.quem)
+      ? (a.quem as { nome?: unknown; expressao?: unknown }[]).filter((q) => typeof q?.nome === "string").slice(0, 2)
+          .map((q) => ({ nome: (q.nome as string).slice(0, 20), expressao: um(EXPRESSOES, q.expressao, "neutro") }))
+      : undefined;
+    a.plano = um(["geral", "close"] as const, a.plano);
+    const pl = a.placar as { valor?: unknown; antes?: unknown } | undefined;
+    a.placar = pl && (typeof pl.valor === "string" || typeof pl.valor === "number")
+      ? { valor: String(pl.valor).slice(0, 16), ...(pl.antes !== undefined && pl.antes !== null ? { antes: String(pl.antes).slice(0, 16) } : {}) }
+      : undefined;
+    a.movimento = um(["subindo", "descendo"] as const, a.movimento);
+  }
+  // elenco: corrige cores e cabelos inventados em vez de jogar o roteiro fora
+  if (r.anim && Array.isArray(r.anim.elenco)) {
+    const hex = (v: unknown, padrao: string) => (typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v) ? v : padrao);
+    const roupas = ["#4caf6e", "#e04f5f", "#f2a33a", "#4a7fd6"];
+    r.anim.elenco = (r.anim.elenco as Record<string, unknown>[]).filter((e) => typeof e?.nome === "string").slice(0, 4).map((e, i) => ({
+      nome: (e.nome as string).slice(0, 20), pele: hex(e.pele, "#c68a5e"), cabelo: um(CABELOS, e.cabelo, "curto"), corCabelo: hex(e.corCabelo, "#2b1d16"),
+      roupa: hex(e.roupa, roupas[i]), ...(typeof e.calca === "string" && /^#[0-9a-fA-F]{6}$/.test(e.calca) ? { calca: e.calca } : {}),
+      idade: um(["crianca", "adulto", "idoso"] as const, e.idade, "adulto"), oculos: e.oculos === true, barba: e.barba === true,
+    }));
   }
   return j;
 }

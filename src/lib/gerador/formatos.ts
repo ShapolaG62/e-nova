@@ -33,6 +33,13 @@ export const FORMATOS: Formato[] = [
     cenaSeg: [2, 4],
   },
   {
+    id: "mundo-absurdo",
+    nome: "“Neste planeta…” (mundo com regra absurda)",
+    descricao: "Um mundo imaginário com uma regra estranha que vira crítica ou reflexão, contada pela vida de dois personagens.",
+    estrutura: "Abre com a regra do mundo numa frase (“Neste planeta, a humanidade inteira mora num único prédio, e o andar mostra quanto dinheiro você tem”) → como a regra funciona no dia a dia, em exemplos rápidos (“recebeu salário, sobe; gastou, desce”) → a consequência injusta ou curiosa → dois personagens que nascem no mesmo dia em pontas opostas da regra → as vidas em paralelo, alternando um e outro, com o número da regra mudando na tela → um encontro ou virada que junta os dois → uma descoberta que muda o sentido da regra → final com reflexão curta e uma pergunta para os comentários. Mesmo elenco o vídeo todo; reações em close.",
+    cenaSeg: [2.5, 4.5],
+  },
+  {
     id: "explicativo",
     nome: "Explicativo narrado",
     descricao: "Explica uma ideia, um serviço ou um “como funciona” em poucos passos.",
