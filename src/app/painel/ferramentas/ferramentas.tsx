@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Banknote, ChevronLeft, Crop, Download, IdCard, Images, LayoutGrid, Mail, MessageSquare, Minimize2, MonitorUp, Pipette, QrCode, RefreshCw, Scissors, Smartphone, Languages,
+  Banknote, ChevronDown, ChevronLeft, Crop, Download, IdCard, Images, LayoutGrid, Mail, MessageSquare, Minimize2, MonitorUp, Pipette, QrCode, RefreshCw, Scissors, Smartphone, Languages,
 } from "lucide-react";
 import { FERRAMENTAS, GRUPOS, type FerramentaId } from "@/lib/ferramentas/catalogo";
 import { cn } from "@/lib/utils";
@@ -37,9 +37,10 @@ const ICONES: Record<FerramentaId, React.ComponentType<{ className?: string }>> 
   "dados-teste": IdCard,
 };
 
-export function Ferramentas({ inicial, temChavePixabay, iaPronta, podeConfigurar }: {
+export function Ferramentas({ inicial, temChavePixabay, temChaveGiphy, iaPronta, podeConfigurar }: {
   inicial: FerramentaId | null;
   temChavePixabay: boolean;
+  temChaveGiphy: boolean;
   iaPronta: boolean;
   podeConfigurar: boolean;
 }) {
@@ -87,40 +88,51 @@ export function Ferramentas({ inicial, temChavePixabay, iaPronta, podeConfigurar
 
   return (
     <div className="grid min-w-0 gap-4">
-      <nav aria-label="Ferramentas" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <ul className="flex w-max items-center gap-1 rounded-xl bg-muted p-1">
-          <li>
-            <button
-              type="button"
-              onClick={() => abrir(null)}
-              className="flex min-h-10 items-center gap-1.5 rounded-lg px-3 text-sm whitespace-nowrap text-muted-foreground hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:min-h-8"
-            >
-              <ChevronLeft className="size-4 sm:hidden" />
-              <LayoutGrid className="hidden size-4 sm:block" /> Todas
-            </button>
-          </li>
-          {FERRAMENTAS.map((f, i) => {
-            const Icone = ICONES[f.id];
-            const novoGrupo = i > 0 && FERRAMENTAS[i - 1].grupo !== f.grupo;
-            return (
-              <li key={f.id} className="flex items-center">
-                {(i === 0 || novoGrupo) && <span className="mx-1 h-5 w-px bg-border" aria-hidden />}
-                <button
-                  type="button"
-                  onClick={() => abrir(f.id)}
-                  aria-current={atual === f.id ? "page" : undefined}
+      {/* Celular: voltar + seletor grande com todas as ferramentas agrupadas */}
+      <div className="flex items-stretch gap-2 sm:hidden">
+        <button type="button" onClick={() => abrir(null)} className="flex h-11 shrink-0 items-center gap-1 rounded-lg border px-3 text-sm" aria-label="Ver todas as ferramentas">
+          <ChevronLeft className="size-4" /> Todas
+        </button>
+        <label className="relative min-w-0 flex-1">
+          <span className="sr-only">Trocar de ferramenta</span>
+          <select value={atual} onChange={(e) => abrir(e.target.value as FerramentaId)}
+            className="h-11 w-full appearance-none rounded-lg border border-primary/60 bg-card pr-9 pl-3 text-[0.95rem] font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+            {GRUPOS.map((g) => (
+              <optgroup key={g} label={g}>
+                {FERRAMENTAS.filter((f) => f.grupo === g).map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              </optgroup>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        </label>
+      </div>
+
+      {/* Computador: todas as ferramentas à vista, por grupo, sem rolagem lateral */}
+      <nav aria-label="Ferramentas" className="hidden gap-2 rounded-xl border bg-card p-2 sm:grid">
+        {GRUPOS.map((g, gi) => (
+          <div key={g} className="flex flex-wrap items-center gap-1">
+            <span className="w-36 shrink-0 px-2 text-[0.68rem] whitespace-nowrap font-semibold tracking-[0.12em] text-muted-foreground uppercase">{g}</span>
+            {FERRAMENTAS.filter((f) => f.grupo === g).map((f) => {
+              const Icone = ICONES[f.id];
+              const ativo = atual === f.id;
+              return (
+                <button key={f.id} type="button" onClick={() => abrir(f.id)} aria-current={ativo ? "page" : undefined}
                   className={cn(
-                    "flex min-h-10 items-center gap-1.5 rounded-lg px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:min-h-8",
-                    atual === f.id ? "bg-background font-medium shadow-sm" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
+                    "flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                    ativo ? "bg-primary font-semibold text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}>
                   <Icone className="size-4" />
                   {f.nome}
                 </button>
-              </li>
-            );
-          })}
-        </ul>
+              );
+            })}
+            {gi === 0 && (
+              <button type="button" onClick={() => abrir(null)} className="ml-auto flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+                <LayoutGrid className="size-4" /> Todas
+              </button>
+            )}
+          </div>
+        ))}
       </nav>
 
       <div key={atual} className="min-w-0">
@@ -128,7 +140,7 @@ export function Ferramentas({ inicial, temChavePixabay, iaPronta, podeConfigurar
         {atual === "compressor" && <Compressor />}
         {atual === "cortar-video" && <CortarVideo />}
         {atual === "baixador" && <Baixador />}
-        {atual === "banco-midia" && <BancoMidia temChave={temChavePixabay} podeConfigurar={podeConfigurar} />}
+        {atual === "banco-midia" && <BancoMidia temChave={temChavePixabay} temChaveGiphy={temChaveGiphy} podeConfigurar={podeConfigurar} />}
         {atual === "gravar-tela" && <GravarTela />}
         {atual === "qrcode" && <GeradorQr />}
         {atual === "conta-gotas" && <ContaGotas />}

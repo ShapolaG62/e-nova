@@ -872,6 +872,8 @@ export type VideoBrief = {
   publico?: string;
   tom?: string;
   visual: "imagem" | "video" | "misto";
+  // de onde vêm as imagens: banco de mídia (grátis), IA seguindo um exemplo do banco, ou só IA
+  fonteVisual?: "banco" | "referencia" | "ia";
   estiloVisual?: string;
   voz?: string;                 // id da voz (Microsoft/ElevenLabs…)
   legendas: boolean;
@@ -882,7 +884,7 @@ export type VideoCenaRoteiro = {
   id: string;
   narracao: string;
   textoNaTela?: string;
-  visual: { tipo: "imagem" | "video"; prompt: string; camera?: string };
+  visual: { tipo: "imagem" | "video"; prompt: string; camera?: string; busca?: string; escolhida?: string };
   duracaoAlvo: number;
   anim?: import("@/lib/gerador/animacao/tipos").AnimCena;
 };
@@ -906,6 +908,7 @@ export type VideoCenaProducao = {
   duracao?: number;
   usadoVisual?: string;
   usadoVoz?: string;
+  midiaBanco?: { url: string; pagina: string; autor: string; fonte: string };
   erro?: string;
 };
 export type VideoResultado = {

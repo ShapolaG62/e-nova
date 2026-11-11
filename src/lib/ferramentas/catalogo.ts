@@ -7,7 +7,7 @@ export const FERRAMENTAS = [
   { id: "compressor", nome: "Compressor", grupo: "Arquivos e vídeo", desc: "Deixe arquivos mais leves ou junte em ZIP." },
   { id: "cortar-video", nome: "Cortar vídeo", grupo: "Arquivos e vídeo", desc: "Escolha os trechos que ficam." },
   { id: "baixador", nome: "Baixador", grupo: "Arquivos e vídeo", desc: "YouTube, Instagram, TikTok e outros." },
-  { id: "banco-midia", nome: "Banco de mídia", grupo: "Arquivos e vídeo", desc: "Fotos e vídeos livres da Pixabay." },
+  { id: "banco-midia", nome: "Banco de mídia", grupo: "Arquivos e vídeo", desc: "Fotos, vídeos, GIFs e emojis animados prontos para usar." },
   { id: "gravar-tela", nome: "Gravar tela", grupo: "Utilidades", desc: "Grave a tela direto no navegador." },
   { id: "qrcode", nome: "QR Code", grupo: "Utilidades", desc: "Link, texto, Wi-Fi ou WhatsApp, com logo." },
   { id: "conta-gotas", nome: "Conta-gotas", grupo: "Utilidades", desc: "Pegue a cor de qualquer ponto." },

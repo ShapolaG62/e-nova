@@ -28,6 +28,7 @@ const briefSchema = z.object({
   publico: z.string().trim().max(300).optional(),
   tom: z.string().trim().max(200).optional(),
   visual: z.enum(["imagem", "video", "misto"]),
+  fonteVisual: z.enum(["banco", "referencia", "ia"]).default("banco"),
   estiloVisual: z.string().trim().max(400).optional(),
   voz: z.string().trim().max(100).optional(),
   cta: z.string().trim().max(200).optional(),
@@ -68,6 +69,7 @@ const cenaEdit = z.object({
   textoNaTela: z.string().trim().max(80).optional(),
   tipo: z.enum(["imagem", "video"]),
   prompt: z.string().trim().max(1500),
+  busca: z.string().trim().max(60).optional(),
   camera: z.string().trim().max(40).optional(),
 });
 const roteiroEdit = z.object({ cenas: z.array(cenaEdit).min(1, "Deixe pelo menos uma cena.").max(20) });
@@ -85,7 +87,7 @@ export async function salvarRoteiroAction(id: string, dados: unknown): Promise<A
     const a = antigo.get(c.id);
     const id2 = a ? c.id : `c${++seq}`;
     const palavras = c.narracao.split(/\s+/).length;
-    return { id: id2, narracao: c.narracao, textoNaTela: c.textoNaTela || undefined, visual: { tipo: c.tipo, prompt: c.prompt, camera: c.camera || undefined }, duracaoAlvo: a?.narracao === c.narracao ? a.duracaoAlvo : Math.max(2, Math.round(palavras / 2.5)), ...(a?.anim ? { anim: a.anim } : {}) };
+    return { id: id2, narracao: c.narracao, textoNaTela: c.textoNaTela || undefined, visual: { tipo: c.tipo, prompt: c.prompt, camera: c.camera || undefined, ...(c.busca ? { busca: c.busca } : {}), ...(a?.visual.escolhida && a.visual.prompt === c.prompt ? { escolhida: a.visual.escolhida } : {}) }, duracaoAlvo: a?.narracao === c.narracao ? a.duracaoAlvo : Math.max(2, Math.round(palavras / 2.5)), ...(a?.anim ? { anim: a.anim } : {}) };
   });
   // o que mudou precisa ser gerado de novo (a montagem também)
   const producao = cenas.map((c) => {
@@ -166,4 +168,35 @@ export async function excluirVideoAction(id: string): Promise<ActionState> {
   await audit(me, "gerador.excluir", { entity: "video_projeto", entityId: id });
   revalidatePath("/painel/gerador");
   redirect("/painel/gerador");
+}
+
+/**
+ * Troca a imagem/vídeo de UMA cena por uma mídia do Banco de mídia escolhida na tela.
+ * A voz da cena é mantida; depois é só "Montar de novo".
+ */
+export async function trocarMidiaCenaAction(id: string, cenaId: string, url: string): Promise<ActionState> {
+  const { me, p } = await projetoDoUsuario(id);
+  if (!p?.roteiro?.cenas.some((c) => c.id === cenaId)) return { ok: false, message: "Cena não encontrada." };
+  if (EM_ANDAMENTO.has(p.status)) return { ok: false, message: "Espere terminar o que está rodando." };
+  const { urlMidiaValida } = await import("@/lib/ferramentas/pixabay");
+  if (!urlMidiaValida(url)) return { ok: false, message: "Escolha uma mídia do Banco de mídia." };
+  const { midiaEscolhida } = await import("@/lib/gerador/banco");
+  const { putObject } = await import("@/lib/storage");
+  let m;
+  try { m = await midiaEscolhida(url); } catch (e) { return { ok: false, message: e instanceof Error ? e.message : "Não consegui baixar essa mídia." }; }
+  const ext = m.mime.startsWith("video/") ? "mp4" : m.mime === "image/png" ? "png" : m.mime === "image/gif" ? "gif" : m.mime === "image/webp" ? "webp" : "jpg";
+  const chave = `gerador/${id}/${cenaId}-visual-${Date.now().toString(36)}.${ext}`;
+  await putObject(chave, m.buffer, m.mime);
+  const anterior = p.cenas.find((c) => c.id === cenaId)?.visualChave;
+  if (anterior && anterior !== chave) await deleteObject(anterior).catch(() => {});
+  const cenas = p.cenas.map((c) => c.id !== cenaId ? c : {
+    ...c, visualChave: chave, visualMime: m.mime, usadoVisual: "banco-de-midia", erro: undefined,
+    midiaBanco: { url, pagina: m.item.pagina, autor: m.item.autor, fonte: m.item.fonte },
+    status: c.audioChave ? ("PRONTA" as const) : ("PENDENTE" as const),
+  });
+  const roteiro = { ...p.roteiro, cenas: p.roteiro.cenas.map((c) => (c.id === cenaId ? { ...c, visual: { ...c.visual, escolhida: url, tipo: m.mime.startsWith("video/") ? ("video" as const) : ("imagem" as const) } } : c)) };
+  await db.update(t.videoProjetos).set({ cenas, roteiro, ...(p.status === "PRONTO" ? { status: "ROTEIRO_PRONTO" } : {}), updatedAt: new Date() }).where(eq(t.videoProjetos.id, id));
+  await registrar("videos", id, "editado", { userId: me.id, dados: { cena: cenaId, midia: "trocada pelo banco" } });
+  revalidatePath(`/painel/gerador/${id}`);
+  return { ok: true, message: "Mídia trocada. Use “Montar o vídeo” para ver o resultado." };
 }

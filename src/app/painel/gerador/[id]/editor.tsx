@@ -7,10 +7,11 @@ import { ArrowDown, ArrowUp, Clapperboard, ImageIcon, Loader2, Plus, RefreshCw, 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ActionState } from "@/lib/validation";
+import { EscolherMidia } from "./escolher-midia";
 import { excluirVideoAction, produzirAction, reescreverAction, refazerCenaAction, remontarAction, salvarRoteiroAction } from "@/app/actions/gerador";
 
 type Cena = {
-  id: string; narracao: string; textoNaTela: string; tipo: "imagem" | "video"; prompt: string; camera: string;
+  id: string; narracao: string; textoNaTela: string; tipo: "imagem" | "video"; prompt: string; camera: string; busca: string; credito?: string;
   status: string; erro?: string; visual: { url: string; video: boolean } | null; audio: string | null; usado: string; resumo?: string;
 };
 
@@ -63,8 +64,8 @@ export function EditorRoteiro({ id, cenas: iniciais, bloqueado, vertical, animad
   const [base, setBase] = useState(iniciais);
   if (base !== iniciais) { setBase(iniciais); setCenas(iniciais); } // dados novos do servidor
   const { pendente, rodar } = useAcao();
-  const mudou = JSON.stringify(cenas.map(({ id, narracao, textoNaTela, tipo, prompt, camera }) => [id, narracao, textoNaTela, tipo, prompt, camera]))
-    !== JSON.stringify(iniciais.map(({ id, narracao, textoNaTela, tipo, prompt, camera }) => [id, narracao, textoNaTela, tipo, prompt, camera]));
+  const mudou = JSON.stringify(cenas.map(({ id, narracao, textoNaTela, tipo, prompt, camera, busca }) => [id, narracao, textoNaTela, tipo, prompt, camera, busca]))
+    !== JSON.stringify(iniciais.map(({ id, narracao, textoNaTela, tipo, prompt, camera, busca }) => [id, narracao, textoNaTela, tipo, prompt, camera, busca]));
   const set = (i: number, v: Partial<Cena>) => setCenas((cs) => cs.map((c, j) => (j === i ? { ...c, ...v } : c)));
   const mover = (i: number, d: number) => setCenas((cs) => { const n = [...cs]; const [x] = n.splice(i, 1); n.splice(i + d, 0, x); return n; });
   const palavras = cenas.reduce((a, c) => a + c.narracao.split(/\s+/).filter(Boolean).length, 0);
@@ -79,7 +80,7 @@ export function EditorRoteiro({ id, cenas: iniciais, bloqueado, vertical, animad
         {mudou && (
           <div className="flex gap-2">
             <Button variant="outline" className="h-10" disabled={pendente} onClick={() => setCenas(iniciais)}>Desfazer</Button>
-            <Button className="h-10" disabled={pendente || bloqueado} onClick={() => rodar(() => salvarRoteiroAction(id, { cenas: cenas.map(({ id, narracao, textoNaTela, tipo, prompt, camera }) => ({ id, narracao, textoNaTela, tipo, prompt, camera })) }))}>
+            <Button className="h-10" disabled={pendente || bloqueado} onClick={() => rodar(() => salvarRoteiroAction(id, { cenas: cenas.map(({ id, narracao, textoNaTela, tipo, prompt, camera, busca }) => ({ id, narracao, textoNaTela, tipo, prompt, camera, busca: busca || undefined })) }))}>
               {pendente && <Loader2 className="animate-spin" />} Salvar roteiro
             </Button>
           </div>
@@ -101,6 +102,7 @@ export function EditorRoteiro({ id, cenas: iniciais, bloqueado, vertical, animad
                 <span className="font-semibold text-foreground">Cena {i + 1}</span>
                 <span>{{ PENDENTE: "Ainda não gerada", GERANDO: "Gerando…", PRONTA: "Pronta", FALHOU: "Falhou" }[c.status] ?? c.status}</span>
                 {c.usado && !animado && <span className="break-words">{c.usado}</span>}
+                {c.credito && <span className="break-words">{c.credito}</span>}
                 {c.resumo && <span className="break-words">{c.resumo}</span>}
               </div>
             </div>
@@ -140,12 +142,17 @@ export function EditorRoteiro({ id, cenas: iniciais, bloqueado, vertical, animad
                 <summary className="cursor-pointer text-sm font-medium">Descrição da imagem para a IA</summary>
                 <textarea rows={3} value={c.prompt} disabled={bloqueado} onChange={(e) => set(i, { prompt: e.target.value })} className={cn(area, "mt-1.5")} aria-label="Descrição da imagem" />
                 <p className="mt-1 text-xs text-muted-foreground">Em inglês, porque os geradores de imagem entendem melhor. O estilo visual do vídeo é somado sozinho.</p>
+                <label className="mt-2 grid gap-1 text-sm">
+                  <span className="font-medium">Palavras para achar no Banco de mídia <span className="font-normal text-muted-foreground">(em inglês)</span></span>
+                  <input value={c.busca} maxLength={60} disabled={bloqueado} onChange={(e) => set(i, { busca: e.target.value })} placeholder="ex.: bakery bread morning" className={cn(area, "h-10")} />
+                </label>
               </details>}
               {c.erro && <p className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">{c.erro}</p>}
               <div className="flex flex-wrap gap-1.5">
                 <Button size="sm" variant="ghost" className="h-9" disabled={bloqueado || i === 0} onClick={() => mover(i, -1)} aria-label="Subir cena"><ArrowUp /></Button>
                 <Button size="sm" variant="ghost" className="h-9" disabled={bloqueado || i === cenas.length - 1} onClick={() => mover(i, 1)} aria-label="Descer cena"><ArrowDown /></Button>
                 <Button size="sm" variant="ghost" className="h-9 text-destructive" disabled={bloqueado || cenas.length <= 1} onClick={() => setCenas((cs) => cs.filter((_, j) => j !== i))}><Trash2 /> Tirar</Button>
+                {!animado && !mudou && <EscolherMidia projeto={id} cenaId={c.id} buscaInicial={c.busca || c.prompt.split(/[.,]/)[0].slice(0, 40)} vertical={vertical} desabilitado={bloqueado} />}
                 {c.status === "PRONTA" && !mudou && (
                   <Button size="sm" variant="outline" className="ml-auto h-9" disabled={bloqueado || pendente} onClick={() => rodar(() => refazerCenaAction(id, c.id))}><RefreshCw /> Refazer cena</Button>
                 )}
@@ -155,7 +162,7 @@ export function EditorRoteiro({ id, cenas: iniciais, bloqueado, vertical, animad
         ))}
       </ol>
       <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-fit" disabled={bloqueado || cenas.length >= 20}
-        onClick={() => setCenas((cs) => [...cs, { id: `nova-${cs.length + 1}`, narracao: "", textoNaTela: "", tipo: "imagem", prompt: "", camera: "", status: "PENDENTE", visual: null, audio: null, usado: "" }])}>
+        onClick={() => setCenas((cs) => [...cs, { id: `nova-${cs.length + 1}`, narracao: "", textoNaTela: "", tipo: "imagem", prompt: "", camera: "", busca: "", status: "PENDENTE", visual: null, audio: null, usado: "" }])}>
         <Plus /> Adicionar cena
       </Button>
     </section>

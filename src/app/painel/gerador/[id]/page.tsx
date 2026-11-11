@@ -131,14 +131,15 @@ async function Conteudo({ params }: { params: PageProps<"/painel/gerador/[id]">[
           cenas={p.roteiro.cenas.map((c) => {
             const prod = p.cenas.find((x) => x.id === c.id);
             return {
-              id: c.id, narracao: c.narracao, textoNaTela: c.textoNaTela ?? "", tipo: c.visual.tipo, prompt: c.visual.prompt, camera: c.visual.camera ?? "",
+              id: c.id, narracao: c.narracao, textoNaTela: c.textoNaTela ?? "", tipo: c.visual.tipo, prompt: c.visual.prompt, camera: c.visual.camera ?? "", busca: c.visual.busca ?? "",
+              credito: prod?.midiaBanco ? `${prod.midiaBanco.fonte}${prod.midiaBanco.autor ? ` · ${prod.midiaBanco.autor}` : ""}` : undefined,
               status: prod?.status ?? "PENDENTE", erro: prod?.erro,
               visual: p.brief.estilo === "animacao"
                 ? { url: `/api/gerador/${p.id}/previa?c=${c.id}&v=${encodeURIComponent(JSON.stringify(c.anim ?? {}).length + c.narracao.slice(0, 12))}`, video: false }
                 : prod?.visualChave ? { url: arq(prod.visualChave), video: !!prod.visualMime?.startsWith("video/") } : null,
               resumo: c.anim ? [c.anim.cenario, c.anim.acao, c.anim.efeito && c.anim.efeito !== "nenhum" ? c.anim.efeito : null, c.anim.som && c.anim.som !== "nenhum" ? `som: ${c.anim.som}` : null, c.anim.cartao ? `cartão: ${c.anim.cartao.tipo}` : null].filter(Boolean).join(" · ") : "",
               audio: prod?.audioChave ? arq(prod.audioChave) : null,
-              usado: [prod?.usadoVisual, prod?.usadoVoz].filter((x): x is string => !!x).map((x) => itemCatalogo(x)?.nome.replace(/\s*\(.*\)$/, "") ?? x).join(" + "),
+              usado: [prod?.usadoVisual, prod?.usadoVoz].filter((x): x is string => !!x).map((x) => x === "banco-de-midia" ? "Banco de mídia" : itemCatalogo(x)?.nome.replace(/\s*\(.*\)$/, "") ?? x).join(" + "),
             };
           })}
         />
