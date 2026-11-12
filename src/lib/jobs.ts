@@ -24,7 +24,9 @@ export type JobType =
   | "video.roteiro"
   | "video.produzir"
   | "video.montar"
-  | "aprendizado.resumir";
+  | "aprendizado.resumir"
+  | "clipador.verificar"
+  | "clipador.processar";
 
 export async function enqueue(
   type: JobType,

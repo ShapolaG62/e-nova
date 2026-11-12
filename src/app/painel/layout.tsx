@@ -29,6 +29,7 @@ function navFor(user: SessionUser): NavItem[] {
 
   push(can(r, "ai:use"), { href: "/painel/gerador", label: "Gerador de vídeos", icon: "video", group: "Conteúdo" });
   push(can(r, "clips:use"), { href: "/painel/cortes", label: "Cortes virais", icon: "scissors", group: "Conteúdo", tab: true });
+  push(can(r, "content:write"), { href: "/painel/clipador", label: "Clipador", icon: "repost", group: "Conteúdo" });
   push(can(r, "content:read"), { href: "/painel/conteudo", label: "Publicações", icon: "video", group: "Conteúdo", tab: r === "CLIENT" });
   push(can(r, "pages:read"), { href: "/painel/paginas", label: "Páginas", icon: "page", group: "Conteúdo" });
   push(can(r, "ai:use"), { href: "/painel/ia", label: "Estúdio IA", icon: "sparkles", group: "Conteúdo" });

@@ -32,6 +32,8 @@ const HANDLERS: Record<JobType, (p: Record<string, unknown>) => Promise<unknown>
   "clip.analyze": (p) => import("@/lib/clips/pipeline").then((m) => m.analyzeProject(id(p))),
   "clip.render": (p) => import("@/lib/clips/pipeline").then((m) => m.renderClip(id(p))),
   "ia.tarefa": (p) => import("@/lib/ia-hub/tarefas").then((m) => m.rodarTarefa(id(p))),
+  "clipador.verificar": (p) => import("@/lib/clipador").then((m) => m.verificarCanal(id(p))),
+  "clipador.processar": (p) => import("@/lib/clipador").then((m) => m.processarVideo(id(p))),
   "video.roteiro": (p) => import("@/lib/gerador/motor").then((m) => m.roteirizar(id(p))),
   "video.produzir": (p) => import("@/lib/gerador/motor").then((m) => m.produzir(id(p), { refazer: Array.isArray(p.refazer) ? p.refazer.map(String) : undefined })),
   "video.montar": (p) => import("@/lib/gerador/motor").then((m) => m.montar(id(p))),
@@ -79,6 +81,12 @@ export async function schedule() {
     .from(t.posts)
     .where(and(eq(t.posts.status, "AGENDADO"), isNotNull(t.posts.scheduledAt), lte(t.posts.scheduledAt, new Date())));
   for (const p of duePosts) await enqueue("post.publish", { id: p.id }, { dedupeKey: `post:${p.id}`, maxAttempts: 1 });
+
+  // Clipador: cada canal vigiado é verificado a cada 10 minutos (RSS público do YouTube)
+  const bloco = Math.floor(Date.now() / 600_000);
+  const canais = await db.select({ id: t.canaisVigiados.id }).from(t.canaisVigiados).where(eq(t.canaisVigiados.ativo, true));
+  for (const c of canais) await enqueue("clipador.verificar", { id: c.id }, { dedupeKey: `clipador-canal:${c.id}:${bloco}`, maxAttempts: 1 });
+  if (canais.length) await import("@/lib/clipador").then((m) => m.sincronizarStatus()).catch((e) => console.warn("[clipador] status:", e instanceof Error ? e.message : e));
 
   // Avaliações do Google: sincroniza a cada hora (o webhook antecipa quando chega notificação)
   const hour = new Date().toISOString().slice(0, 13);

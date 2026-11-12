@@ -109,3 +109,16 @@ export async function downloadYoutube(id: string, dir: string, onProgress: (pct:
   if (!existsSync(file)) throw new Error("O download terminou sem gerar o MP4");
   return file;
 }
+
+/** Lista os itens mais recentes de um perfil (TikTok etc.) sem baixar: JSON do yt-dlp. */
+export async function listarPerfil(url: string, quantos = 15): Promise<Record<string, unknown>> {
+  return JSON.parse(await run([...BASE, "--flat-playlist", "--playlist-end", String(quantos), "-J", url], { timeoutMs: 120_000 }));
+}
+
+/** Baixa um vídeo por link (TikTok etc.) em MP4 para a pasta e devolve o caminho. */
+export async function baixarLink(url: string, dir: string) {
+  await run([...BASE, "-f", "b[ext=mp4]/bv*+ba/b", "--merge-output-format", "mp4", "--ffmpeg-location", String(ffmpegPath), "--max-filesize", "2G", "-o", "video.%(ext)s", url], { cwd: dir, timeoutMs: 30 * 60_000 });
+  const file = path.join(dir, "video.mp4");
+  if (!existsSync(file)) throw new Error("O download terminou sem gerar o MP4");
+  return file;
+}
