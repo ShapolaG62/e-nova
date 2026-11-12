@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 
 /** Tema claro/escuro (classe .dark no <html>, salvo no navegador). */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // escuro Brasa é o padrão da equipe; as páginas públicas dos clientes ficam claras via .marca-enova (globals.css)
+  // escuro "Mesa de edição" é o padrão da equipe; as páginas públicas dos clientes ficam claras via .marca-enova (globals.css)
   return (
-    <NextThemes attribute="class" defaultTheme="dark" enableSystem={false} storageKey="enova-tema-brasa" disableTransitionOnChange>
+    <NextThemes attribute="class" defaultTheme="dark" enableSystem={false} storageKey="enova-tema-mesa" disableTransitionOnChange>
       {children}
     </NextThemes>
   );

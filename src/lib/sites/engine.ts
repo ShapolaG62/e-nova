@@ -21,6 +21,7 @@ export type SiteDoc = {
   animacoes: Record<string, boolean>;
   blocos: SiteBlock[];
   textosIA?: boolean;
+  paleta?: string; // paleta pronta (cores + fundo + fontes), ver engine/paletas.js
 };
 export type Setor = {
   id: string; nome: string; icone: string; busca: string; tipos: string[];
@@ -28,13 +29,15 @@ export type Setor = {
   vocab: { cliente: string; clientes: string; acao: string; cta: string; lugar: string };
   servicos: [string, string][];
 };
-export type LayoutInfo = { id: string; nome: string; descricao: string; escuro: boolean; setores: string[] };
+export type LayoutInfo = { id: string; nome: string; descricao: string; escuro: boolean; setores: string[]; fonte?: string };
+export type PaletaInfo = { id: string; nome: string; clima: string; cores: [string, string]; fundo: { id: string; bg: string; tx: string; escuro: boolean }; fonte: string };
 export type Mensagem = { etapa: string; dica?: string; texto: string };
 export type Abordagem = { resumo: { empresa: string; nicho: string; cidade: string; objetivo: string }; mensagens: Mensagem[]; ia?: boolean; aviso?: string };
 export type FalaLigacao = { etapa: string; fala: string; coach: string };
 
 export const renderSite = (doc: SiteDoc, opts: { midia?: (u: string) => string; editor?: boolean; beacon?: string; rodapeCredito?: string } = {}): string => (R as any).render(doc, opts);
 export const listaLayouts = (): LayoutInfo[] => (R as any).listaLayouts();
+export const listaPaletas = (): PaletaInfo[] => (R as any).listaPaletas();
 export const LAYOUT_IDS = (): string[] => Object.keys((R as any).LAYOUTS);
 export const TEMAS: Record<string, string> = (R as any).TEMAS;
 
@@ -53,6 +56,7 @@ export const mensagemEnvio = (lead: Record<string, any>, config: Record<string, 
 export const OBJECOES: { objecao: string; resposta: string }[] = (A as any).OBJECOES;
 
 export type LeadBusca = Record<string, any> & { id: string; placeId?: string; nome: string; oportunidade: number; situacaoSite: "sem" | "rede" | "tem"; fotos: string[] };
+export const negocioNoGoogle = (o: { placeId?: string | null; nome: string; cidade?: string; uf?: string; pais?: string; chave: string }): Promise<LeadBusca | null> => (Pl as any).umNegocio(o);
 export const buscarPlaces = (o: { termo: string; cidade: string; uf?: string; pais?: string; quantidade: number; chave?: string; soSemSite?: boolean }): Promise<{ leads: LeadBusca[]; analisadas: number; comSite: number; semSite: number; demo: boolean }> => (Pl as any).buscar(o);
 export const notaOportunidade = (l: Record<string, any>): number => (Pl as any).notaOportunidade(l);
 export const PAISES: Record<string, { nome: string; idioma: string; ddi: string; moeda: string }> = (Pl as any).PAISES;

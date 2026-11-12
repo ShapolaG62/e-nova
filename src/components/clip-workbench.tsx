@@ -81,7 +81,7 @@ export function ClipWorkbench({
           }}
         />
         <details className="rounded-2xl border bg-card p-4 open:pb-2">
-          <summary className="cursor-pointer font-display font-semibold">Transcrição</summary>
+          <summary className="cursor-pointer font-semibold">Transcrição</summary>
           <ol className="mt-3 max-h-80 space-y-1.5 overflow-y-auto pr-1 text-sm">
             {transcript.map((s, i) => {
               const active = now >= s.start && now < s.end;

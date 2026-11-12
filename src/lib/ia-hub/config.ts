@@ -16,7 +16,7 @@ const lista = (v: Campos | Campos[] | undefined): Campos[] => (!v ? [] : Array.i
 export const MAX_CHAVES = 10;
 
 /** Serviços que funcionam sem chave (a chave, se houver, só melhora). */
-const SEM_CHAVE = new Set(["ollama", "pollinations", "edge", "imagem-local", "voz-local"]);
+const SEM_CHAVE = new Set(["pollinations", "edge", "imagem-local", "voz-local"]);
 
 function abrir(enc: Campos): Campos | null {
   try { return Object.fromEntries(Object.entries(enc).map(([k, v]) => [k, decrypt(v)])); } catch { return null; }
@@ -80,7 +80,6 @@ export async function credenciaisConfiguradas(): Promise<Record<string, string>>
   for (const [id, ks] of Object.entries(masc)) if (ks.length) out[id] = ks.length > 1 ? `${ks[0]} +${ks.length - 1}` : ks[0];
   if (!out.gemini && (await geminiKey())) out.gemini = "••••";
   if (!out.anthropic && env.ANTHROPIC_API_KEY) out.anthropic = "••••";
-  out.ollama = "local";
   for (const id of SEM_CHAVE) out[id] ??= "grátis";
   return out;
 }

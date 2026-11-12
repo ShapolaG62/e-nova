@@ -11,4 +11,4 @@ export const NEGOCIO_AMOSTRA = {
   ],
 };
 export const FOTOS_AMOSTRA = [1, 2, 3, 4, 5, 6].map((i) => `https://picsum.photos/seed/enova${i}/1400/1000`);
-export const SETOR_POR_LAYOUT: Record<string, string> = { aurora: "dentista", brasa: "barbearia", clinica: "fisioterapia", serena: "salao", oficio: "mecanica", patas: "petshop", sabor: "restaurante", lex: "advocacia", chave: "imobiliaria" };
+export const SETOR_POR_LAYOUT: Record<string, string> = { aurora: "dentista", brasa: "barbearia", clinica: "fisioterapia", serena: "salao", oficio: "mecanica", patas: "petshop", sabor: "restaurante", lex: "advocacia", chave: "imobiliaria", vitrine: "loja", atelier: "estetica", pulso: "academia", maison: "estetica", noite: "barbearia", horizonte: "academia" };

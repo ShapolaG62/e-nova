@@ -114,7 +114,8 @@ async function Conteudo({ params }: { params: PageProps<"/painel/gerador/[id]">[
           <h2 id="tratamento" className="font-semibold">A ideia do diretor</h2>
           <p className="text-sm"><span className="font-medium">Gancho:</span> {p.roteiro.gancho}</p>
           <p className="text-sm text-muted-foreground">{p.roteiro.tratamento}</p>
-          {p.roteiro.usado && <p className="text-xs text-muted-foreground">Roteiro escrito por {itemCatalogo(p.roteiro.usado)?.nome ?? p.roteiro.usado}.</p>}
+          {p.roteiro.cadeia?.length ? <p className="text-xs text-muted-foreground">Corrente de IAs: {p.roteiro.cadeia.join(" → ")}.</p> : p.roteiro.usado && <p className="text-xs text-muted-foreground">Roteiro escrito por {itemCatalogo(p.roteiro.usado)?.nome ?? p.roteiro.usado}.</p>}
+          {p.brief.padraoId && <p className="text-xs text-muted-foreground">Feito a partir de um padrão salvo{p.brief.mesmoPersonagem !== false ? ", com o mesmo personagem" : ", com outro personagem"}.</p>}
         </section>
       )}
 

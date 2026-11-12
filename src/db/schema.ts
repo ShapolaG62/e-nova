@@ -880,12 +880,20 @@ export type VideoBrief = {
   legendas: boolean;
   musica: boolean;
   cta?: string;
+  // ── história com personagem, estética e fotos (gerador novo) ──
+  personagem?: string;          // como é o personagem principal (aparência, roupa, jeito)
+  fotoPersonagem?: string;      // chave da foto de referência do personagem
+  estetica?: string;            // id da estética pronta (ver gerador/estetica.ts)
+  fotosAnimar?: string[];       // chaves das fotos que viram cenas animadas, na ordem
+  padraoId?: string;            // padrão salvo usado para gerar este vídeo
+  mesmoPersonagem?: boolean;    // com padrão: manter o mesmo personagem
+  revisar?: boolean;            // corrente de IAs: uma segunda IA revisa o roteiro e confere as imagens (padrão: sim)
 };
 export type VideoCenaRoteiro = {
   id: string;
   narracao: string;
   textoNaTela?: string;
-  visual: { tipo: "imagem" | "video"; prompt: string; camera?: string; busca?: string; escolhida?: string };
+  visual: { tipo: "imagem" | "video"; prompt: string; camera?: string; busca?: string; escolhida?: string; foto?: string };
   duracaoAlvo: number;
   anim?: import("@/lib/gerador/animacao/tipos").AnimCena;
 };
@@ -898,6 +906,7 @@ export type VideoRoteiro = {
   musica?: string;
   cenas: VideoCenaRoteiro[];
   usado?: string;
+  cadeia?: string[];            // quem fez o quê na corrente de IAs (roteiro, revisão, personagem…)
   anim?: import("@/lib/gerador/animacao/tipos").AnimVideo;
 };
 export type VideoCenaProducao = {

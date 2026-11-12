@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { db, t } from "@/db";
 import { requirePermission } from "@/lib/auth/session";
-import { listaLayouts, setor, TEMAS, type SiteDoc } from "@/lib/sites/engine";
+import { listaLayouts, listaPaletas, setor, TEMAS, type SiteDoc } from "@/lib/sites/engine";
 import { EditorSite } from "@/components/vendas/editor-site";
 
 export const metadata: Metadata = { title: "Editar site" };
@@ -43,6 +43,7 @@ async function Editor({ params }: { params: PageProps<"/painel/sites/[id]/editor
       layouts={listaLayouts()}
       coresSetor={setor(doc.setor || site.sector).cores}
       temas={TEMAS}
+      paletas={listaPaletas()}
     />
   );
 }

@@ -7,7 +7,7 @@ import {
   Palette, Pencil, Plus, Redo2, Smartphone, Tablet, Trash2, Undo2, WandSparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { LayoutInfo, SiteDoc } from "@/lib/sites/engine";
+import type { LayoutInfo, PaletaInfo, SiteDoc } from "@/lib/sites/engine";
 import { novoBlocoAction, salvarSiteAction } from "@/app/actions/vendas";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,7 @@ export function EditorSite({
   layouts,
   coresSetor,
   temas,
+  paletas = [],
 }: {
   siteId: string;
   nome: string;
@@ -35,6 +36,7 @@ export function EditorSite({
   layouts: LayoutInfo[];
   coresSetor: [string, string][];
   temas: Record<string, string>;
+  paletas?: PaletaInfo[];
 }) {
   const [doc, setDoc] = useState<SiteDoc>(() => normalizar(inicial));
   const docRef = useRef(doc);
@@ -318,6 +320,7 @@ export function EditorSite({
                 mudar={mudar}
                 layouts={layouts}
                 temas={temas}
+                paletas={paletas}
                 aoAbrirBloco={abrirBloco}
                 aoIr={(p) => setPainel(p)}
                 aoPedirIA={() => setIa({ blocoId: null })}
@@ -409,6 +412,7 @@ function PainelInicio({
   mudar,
   layouts,
   temas,
+  paletas,
   aoAbrirBloco,
   aoIr,
   aoPedirIA,
@@ -417,6 +421,7 @@ function PainelInicio({
   mudar: Mudar;
   layouts: LayoutInfo[];
   temas: Record<string, string>;
+  paletas: PaletaInfo[];
   aoAbrirBloco: (id: string) => void;
   aoIr: (p: Painel) => void;
   aoPedirIA: () => void;
@@ -438,31 +443,86 @@ function PainelInicio({
 
       <section className="grid grid-cols-1 gap-2">
         <Rotulo>Visual (layout)</Rotulo>
-        <div className="flex flex-wrap gap-1.5">
-          {layouts.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              title={l.descricao}
-              aria-pressed={l.id === doc.layout}
-              onClick={() =>
-                l.id !== doc.layout &&
-                mudar((d) => {
-                  d.layout = l.id;
-                  d.tema = "auto";
-                })
-              }
-              className={cn(
-                "h-8 rounded-full border px-3 text-sm transition",
-                l.id === doc.layout ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:border-primary/50",
-              )}
-            >
-              {l.nome}
-            </button>
-          ))}
+        <div className="grid grid-cols-2 gap-1.5 [&>*]:min-w-0">
+          {layouts.map((l) => {
+            const ativo = l.id === doc.layout;
+            return (
+              <button
+                key={l.id}
+                type="button"
+                aria-pressed={ativo}
+                onClick={() =>
+                  !ativo &&
+                  mudar((d) => {
+                    d.layout = l.id;
+                    // com paleta escolhida, o fundo da paleta continua; sem paleta, volta ao fundo do visual
+                    if (!d.paleta) d.tema = "auto";
+                  })
+                }
+                className={cn(
+                  "grid gap-0.5 rounded-xl border p-2.5 text-left transition",
+                  ativo ? "border-primary bg-primary/10" : "bg-background hover:border-primary/50",
+                )}
+              >
+                <span className="flex items-center justify-between gap-1 text-sm font-semibold">
+                  <span className="truncate">{l.nome}</span>
+                  {ativo && <Check className="size-3.5 shrink-0 text-primary" aria-hidden />}
+                </span>
+                <span className="line-clamp-2 text-[0.72rem] leading-snug text-muted-foreground">{l.descricao}</span>
+              </button>
+            );
+          })}
         </div>
         <Dica>Troca o desenho inteiro do site. Textos, fotos e cores continuam.</Dica>
       </section>
+
+      {paletas.length > 0 && (
+        <section className="grid grid-cols-1 gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <Rotulo>Paletas prontas</Rotulo>
+            {doc.paleta && (
+              <button type="button" onClick={() => mudar((d) => { d.paleta = undefined; d.tema = "auto"; })} className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+                Tirar paleta
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 [&>*]:min-w-0">
+            {paletas.map((p) => {
+              const ativa = doc.paleta === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={ativa}
+                  onClick={() =>
+                    mudar((d) => {
+                      d.paleta = p.id;
+                      d.cores = { primaria: p.cores[0], secundaria: p.cores[1] };
+                      d.tema = p.fundo.id;
+                    })
+                  }
+                  className={cn("grid overflow-hidden rounded-xl border text-left transition", ativa ? "border-primary ring-2 ring-primary/30" : "hover:border-primary/50")}
+                >
+                  {/* amostra: fundo da paleta com as duas cores e o "Aa" na cor do texto */}
+                  <span className="flex h-11 items-center gap-1.5 px-2.5" style={{ background: p.fundo.bg, color: p.fundo.tx }}>
+                    <span className="text-base font-semibold leading-none">Aa</span>
+                    <span className="ml-auto size-4 rounded-full ring-1 ring-black/10" style={{ background: p.cores[0] }} />
+                    <span className="size-4 rounded-full ring-1 ring-black/10" style={{ background: p.cores[1] }} />
+                  </span>
+                  <span className="grid gap-0.5 bg-background px-2.5 py-1.5">
+                    <span className="flex items-center gap-1 truncate text-[0.8rem] font-semibold">
+                      {ativa && <Check className="size-3.5 shrink-0 text-primary" aria-hidden />}
+                      <span className="truncate">{p.nome}</span>
+                    </span>
+                    <span className="truncate text-[0.7rem] text-muted-foreground">{p.clima} · {p.fonte}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <Dica>Muda de uma vez as cores, o fundo e as fontes. Dá para ajustar as cores depois.</Dica>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 gap-2">
         <Rotulo>Tema</Rotulo>

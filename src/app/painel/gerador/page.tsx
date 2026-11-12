@@ -16,6 +16,11 @@ import { PageHeader, PageSkeleton } from "@/components/page";
 import { Progress } from "@/components/ui/progress";
 import { QuemFazLista, StatusVideo } from "./comum";
 import { EscolherVoz, EstiloPersonagens, Receitas } from "./opcoes-video";
+import { EsteticaEscolha, FotosAnimar, PersonagemCampo } from "./historia-video";
+import { PadroesLista, type PadraoCartao } from "./padroes-lista";
+import { listarPadroes } from "@/lib/gerador/padroes";
+import { estetica } from "@/lib/gerador/estetica";
+import { formato } from "@/lib/gerador/formatos";
 
 export const metadata: Metadata = { title: "Gerador de vídeos" };
 const quando = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -26,7 +31,7 @@ export default function Page() {
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         title="Gerador de vídeos"
-        subtitle="Conte a ideia: o diretor de IA escreve o roteiro, a Central gera imagens, clipes e narração, e o E-Nova monta o vídeo com legenda e trilha."
+        subtitle="Conte a história, mostre o personagem e escolha a estética. As melhores IAs grátis passam o trabalho de uma para outra até o vídeo ficar pronto, e ele vira um padrão para repetir com 1 botão."
       />
       <Suspense fallback={<PageSkeleton />}>
         <Conteudo />
@@ -37,39 +42,50 @@ export default function Page() {
 
 async function Conteudo() {
   const me = await requirePermission("ai:use");
-  const [projetos, quem, minhas] = await Promise.all([
+  const [projetos, quem, minhas, padroes] = await Promise.all([
     db.select({ id: t.videoProjetos.id, titulo: t.videoProjetos.titulo, status: t.videoProjetos.status, progresso: t.videoProjetos.progresso, etapa: t.videoProjetos.etapa, criado: t.videoProjetos.createdAt, resultado: t.videoProjetos.resultado, brief: t.videoProjetos.brief })
       .from(t.videoProjetos).where(can(me.role, "system:view") ? undefined : eq(t.videoProjetos.userId, me.id)).orderBy(desc(t.videoProjetos.createdAt)).limit(40),
     quemFaz(),
     db.select({ id: t.vozes.id, nome: t.vozes.nome }).from(t.vozes).where(eq(t.vozes.status, "PRONTA")).orderBy(desc(t.vozes.createdAt)).limit(30),
+    listarPadroes(),
   ]);
+  const cartoes: PadraoCartao[] = padroes.filter((p) => can(me.role, "system:view") || p.userId === me.id).map((p) => ({
+    id: p.id, nome: p.nome, usos: p.usos,
+    capa: p.capaChave ? `/api/gerador/${p.projetoId}/arquivo?k=${encodeURIComponent(p.capaChave)}` : null,
+    detalhes: [p.brief.estilo === "animacao" ? "Animação desenhada" : estetica(p.brief.estetica)?.nome ?? "Imagens por IA", formato(p.brief.formato).nome, `${p.brief.duracaoAlvo} s`, p.brief.proporcao].join(" · "),
+    personagem: p.brief.personagem?.slice(0, 70) ?? p.personagens?.map((x) => x.nome).join(", ") ?? p.anim?.elenco?.map((x) => x.nome).join(", ") ?? null,
+  }));
 
   return (
+    <div className="grid grid-cols-1 gap-6">
+    <PadroesLista padroes={cartoes} />
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
       <section aria-labelledby="novo" className="grid min-w-0 content-start gap-4">
         <Receitas />
         <ActionForm action={criarVideoAction} id="form-novo-video" className="grid gap-4 rounded-2xl border bg-card p-4">
           <h2 id="novo" className="text-lg font-semibold">Novo vídeo</h2>
           <div className="grid gap-1.5">
-            <label htmlFor="tema" className="text-sm font-medium">Sobre o que é o vídeo?</label>
-            <textarea id="tema" name="tema" rows={4} required placeholder="Ex.: 3 erros que fazem a pizzaria perder clientes no delivery, e como a Pizzaria do Zé resolve cada um." className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm dark:bg-input/30" />
+            <label htmlFor="tema" className="text-sm font-medium">Conte a história</label>
+            <textarea id="tema" name="tema" rows={4} required placeholder="Ex.: Dona Rita abre a padaria às 5h, o forno falha no dia da encomenda grande e ela salva tudo com a ajuda dos vizinhos. Ou: 3 erros que fazem a pizzaria perder clientes no delivery." className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:text-sm dark:bg-input/30" />
             <FieldError name="tema" />
           </div>
+          <PersonagemCampo />
           <fieldset className="grid gap-2">
             <legend className="mb-1.5 text-sm font-medium">Estilo</legend>
             <label className="flex items-start gap-2.5 rounded-xl border p-3 text-sm has-[:checked]:border-signal has-[:checked]:bg-signal/5">
-              <input type="radio" name="estilo" value="animacao" defaultChecked className="mt-0.5 size-4 accent-[var(--primary)]" />
+              <input type="radio" name="estilo" value="animacao" className="mt-0.5 size-4 accent-[var(--primary)]" />
               <span><strong>Animação desenhada</strong> — bonecos e cenários feitos por código, com efeitos sonoros. Grátis, sem IA de imagem, sempre vertical.</span>
             </label>
             <label className="flex items-start gap-2.5 rounded-xl border p-3 text-sm has-[:checked]:border-signal has-[:checked]:bg-signal/5">
-              <input type="radio" name="estilo" value="fotos" className="mt-0.5 size-4 accent-[var(--primary)]" />
-              <span><strong>Imagens geradas por IA</strong> — fotos ou clipes criados pelas IAs da Central, com movimento de câmera.</span>
+              <input type="radio" name="estilo" value="fotos" defaultChecked className="mt-0.5 size-4 accent-[var(--primary)]" />
+              <span><strong>Imagens por IA</strong> — o personagem, a estética e as suas fotos ganham vida em cenas com movimento de câmera (ou clipes, se houver IA de vídeo).</span>
             </label>
           </fieldset>
-          <EstiloPersonagens />
+          <div className="so-ia grid gap-4"><EsteticaEscolha /><FotosAnimar /></div>
+          <div className="so-animacao"><EstiloPersonagens /></div>
           <div className="grid gap-1.5">
             <label htmlFor="formato" className="text-sm font-medium">Formato</label>
-            <select id="formato" name="formato" defaultValue="voce-decide" className={sel}>
+            <select id="formato" name="formato" defaultValue="historia" className={sel}>
               {FORMATOS.map((f) => <option key={f.id} value={f.id}>{f.nome} — {f.descricao}</option>)}
             </select>
           </div>
@@ -86,10 +102,10 @@ async function Conteudo() {
           </div>
           <div className="grid gap-1.5">
             <label htmlFor="fonteVisual" className="text-sm font-medium">De onde vêm as imagens? <span className="font-normal text-muted-foreground">(só no estilo com IA)</span></label>
-            <select id="fonteVisual" name="fonteVisual" defaultValue="banco" className={sel}>
-              <option value="banco">Banco de mídia: fotos e vídeos prontos (grátis, rápido); IA só se faltar</option>
+            <select id="fonteVisual" name="fonteVisual" defaultValue="ia" className={sel}>
+              <option value="ia">IA desenha todas as cenas (o personagem aparece em todas)</option>
               <option value="referencia">IA criando imagens novas seguindo um exemplo do banco</option>
-              <option value="ia">Só IA (gera todas as imagens)</option>
+              <option value="banco">Banco de mídia: fotos e vídeos prontos (sem personagem fixo)</option>
             </select>
           </div>
           <div className="grid gap-1.5">
@@ -116,6 +132,8 @@ async function Conteudo() {
           <div className="grid gap-2 text-sm">
             <label className="flex items-center gap-2.5"><input type="checkbox" name="legendas" defaultChecked className="size-4 accent-[var(--primary)]" /> Legendas na tela</label>
             <label className="flex items-center gap-2.5"><input type="checkbox" name="musica" className="size-4 accent-[var(--primary)]" /> Trilha sonora (precisa de IA de música, paga)</label>
+            <input type="hidden" name="semRevisao" value="on" />
+            <label className="flex items-start gap-2.5"><input type="checkbox" name="semRevisao" value="off" defaultChecked className="mt-0.5 size-4 accent-[var(--primary)]" /> <span>Corrente de IAs: uma segunda IA revisa o roteiro e uma IA que enxerga confere se o personagem saiu igual (mais lento, melhor resultado)</span></label>
           </div>
           <FormMessage />
           <SubmitButton className="h-11 w-full sm:h-10">Escrever o roteiro</SubmitButton>
@@ -152,6 +170,7 @@ async function Conteudo() {
           ))}
         </ul>
       </section>
+    </div>
     </div>
   );
 }

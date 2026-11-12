@@ -48,3 +48,4 @@ next-env.d.ts
 # voz no computador (ambiente Python, ~5 GB)
 /tools/voz-local/.venv/
 __pycache__/
+/tests/web/prints/

@@ -141,7 +141,7 @@ export function LeadCard({
       <div className="flex min-w-0 gap-3">
         <Foto lead={lead} />
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 font-display text-[1.02rem] leading-snug font-semibold">{lead.nome}</h3>
+          <h3 className="line-clamp-2 text-[1.02rem] leading-snug font-semibold">{lead.nome}</h3>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             {lead.cidade && (
               <span className="inline-flex items-center gap-1">
