@@ -20,8 +20,10 @@ export function ActionForm({
   action,
   children,
   className,
+  id,
   resetOnSuccess = false,
 }: {
+  id?: string;
   action: (prev: ActionState, form: FormData) => Promise<ActionState>;
   children: React.ReactNode;
   className?: string;
@@ -47,6 +49,7 @@ export function ActionForm({
     <FormCtx.Provider value={{ state, pending, ready }}>
       <form
         ref={ref}
+        id={id}
         method="post"
         noValidate
         className={className}

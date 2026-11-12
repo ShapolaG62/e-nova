@@ -8,7 +8,6 @@ import { requirePermission } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
 import { FORMATOS } from "@/lib/gerador/formatos";
 import { quemFaz } from "@/lib/gerador/quem";
-import { VOZES_EDGE } from "@/lib/ia-hub/adaptadores/diretos/gratis";
 import { criarVideoAction } from "@/app/actions/gerador";
 import { ActionForm, FieldError, FormMessage, SubmitButton } from "@/components/action-form";
 import { ClientSelect } from "@/components/client-filter";
@@ -16,6 +15,7 @@ import { Field } from "@/components/field";
 import { PageHeader, PageSkeleton } from "@/components/page";
 import { Progress } from "@/components/ui/progress";
 import { QuemFazLista, StatusVideo } from "./comum";
+import { EscolherVoz, EstiloPersonagens, Receitas } from "./opcoes-video";
 
 export const metadata: Metadata = { title: "Gerador de vídeos" };
 const quando = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -46,8 +46,9 @@ async function Conteudo() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-      <section aria-labelledby="novo" className="grid content-start gap-4">
-        <ActionForm action={criarVideoAction} className="grid gap-4 rounded-2xl border bg-card p-4">
+      <section aria-labelledby="novo" className="grid min-w-0 content-start gap-4">
+        <Receitas />
+        <ActionForm action={criarVideoAction} id="form-novo-video" className="grid gap-4 rounded-2xl border bg-card p-4">
           <h2 id="novo" className="text-lg font-semibold">Novo vídeo</h2>
           <div className="grid gap-1.5">
             <label htmlFor="tema" className="text-sm font-medium">Sobre o que é o vídeo?</label>
@@ -65,6 +66,7 @@ async function Conteudo() {
               <span><strong>Imagens geradas por IA</strong> — fotos ou clipes criados pelas IAs da Central, com movimento de câmera.</span>
             </label>
           </fieldset>
+          <EstiloPersonagens />
           <div className="grid gap-1.5">
             <label htmlFor="formato" className="text-sm font-medium">Formato</label>
             <select id="formato" name="formato" defaultValue="voce-decide" className={sel}>
@@ -98,18 +100,7 @@ async function Conteudo() {
               <option value="video">Clipes de vídeo em todas as cenas (mais caro)</option>
             </select>
           </div>
-          <div className="grid gap-1.5">
-            <label htmlFor="voz" className="text-sm font-medium">Voz da narração</label>
-            <select id="voz" name="voz" defaultValue="pt-BR-FranciscaNeural" className={sel}>
-              {minhas.length > 0 && (
-                <optgroup label="Minhas vozes (clonadas)">
-                  {minhas.map((v) => <option key={v.id} value={`minha:${v.id}`}>{v.nome}</option>)}
-                </optgroup>
-              )}
-              {VOZES_EDGE.map((v) => <option key={v.id} value={v.id}>{v.nome} — grátis</option>)}
-              <option value="">Melhor voz disponível na Central (pode ser paga)</option>
-            </select>
-          </div>
+          <EscolherVoz minhas={minhas} />
           <details className="group rounded-xl border p-3">
             <summary className="cursor-pointer text-sm font-medium">Mais opções</summary>
             <div className="mt-3 grid gap-3">

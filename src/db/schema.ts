@@ -866,6 +866,7 @@ export type IaTarefa = typeof iaTarefas.$inferSelect;
 export type VideoBrief = {
   tema: string;
   estilo?: "fotos" | "animacao"; // animacao = desenhado por código, sem IA de imagem/vídeo
+  personagens?: "desenho" | "recorte" | "silhueta"; // só na animação: como o elenco é desenhado
   formato: string;              // id do formato (explicativo, ranking, historia, produto, dicas…)
   duracaoAlvo: number;          // segundos
   proporcao: "9:16" | "16:9" | "1:1";

@@ -1,5 +1,6 @@
 import "server-only";
 import { fachada, interior, personagem, placar } from "./cartum";
+import { CENARIOS_RECORTE, fundoRecorte, personagemRecorte } from "./recorte";
 import { CARTOES_HISTORIA, type Acao, type AnimCena, type AnimVideo, type Cenario, type Objeto, type Paleta } from "./tipos";
 
 // Desenha UM quadro da animação como SVG (o render.ts transforma em imagem e junta no vídeo).
@@ -16,6 +17,7 @@ const PALETA: Record<Paleta, Cores> = {
   neon: { ceu1: "#120a2b", ceu2: "#2a0f4f", longe: "#2b1460", perto: "#170a35", chao: "#0c0620", luz: "#7df9ff", janela: "#ff4fd8", boneco: "#07030f", borda: "#7a3cff", texto: "#ffffff", destaque: "#ff4fd8" },
   suave: { ceu1: "#e9dcc4", ceu2: "#f3ead8", longe: "#e3d3b4", perto: "#c9b48f", chao: "#a4865f", luz: "#fff6dd", janela: "#ffe8a8", boneco: "#3a2a22", borda: "#8a6f4d", texto: "#ffffff", destaque: "#ffd23f" },
   dia: { ceu1: "#7ec8f2", ceu2: "#cfeeff", longe: "#a7c4d9", perto: "#7f9fb8", chao: "#5d7a8f", luz: "#ffffff", janela: "#fff3c4", boneco: "#2a2f3a", borda: "#ffffff", texto: "#ffffff", destaque: "#ffd23f" },
+  inverno: { ceu1: "#8ec9ec", ceu2: "#d6eefc", longe: "#9fb3c8", perto: "#6d7f9c", chao: "#e9f1fb", luz: "#ffffff", janela: "#ffe9a3", boneco: "#1d1a1a", borda: "#ffffff", texto: "#ffffff", destaque: "#ffd23f" },
 };
 
 const CHAO = 1180; // linha do chão (a parte de baixo fica para a legenda)
@@ -372,7 +374,7 @@ function cartao(c: Cores, k: AnimCena["cartao"], W: number, prog: number, painel
   } else if (k.tipo === "regra") {
     const ls = quebrar((k.texto ?? "").toUpperCase(), 22).slice(0, 4);
     const h = 170 + ls.length * 64;
-    g(`<rect x="${cx - 400}" y="${cy - h / 2}" width="800" height="${h}" rx="34" fill="#141a35" stroke="#3b4380" stroke-width="4"/><rect x="${cx - 230}" y="${cy - h / 2 - 46}" width="460" height="92" rx="46" fill="${c.destaque}"/><text x="${cx}" y="${cy - h / 2 + 16}" font-family="Arial Black, Arial" font-size="50" fill="#141a35" text-anchor="middle">${esc(k.titulo.toUpperCase().slice(0, 18))}</text>${ls.map((l, i) => `<text x="${cx}" y="${cy - h / 2 + 130 + i * 64}" font-family="Arial Black, Arial" font-size="48" fill="#fff" text-anchor="middle">${esc(l)}</text>`).join("")}`);
+    g(`<rect x="${cx - 400}" y="${cy - h / 2}" width="800" height="${h}" rx="34" fill="#141a35" stroke="#3b4380" stroke-width="4"/><rect x="${cx - 230}" y="${cy - h / 2 - 46}" width="460" height="92" rx="46" fill="${c.destaque}"/><text x="${cx}" y="${cy - h / 2 + 16}" font-family="Arial Black, Arial" font-size="${caber(k.titulo.slice(0, 24), 420, 50)}" fill="#141a35" text-anchor="middle">${esc(k.titulo.toUpperCase().slice(0, 24))}</text>${ls.map((l, i) => `<text x="${cx}" y="${cy - h / 2 + 130 + i * 64}" font-family="Arial Black, Arial" font-size="48" fill="#fff" text-anchor="middle">${esc(l)}</text>`).join("")}`);
   } else if (k.tipo === "celular") {
     const msgs = quebrar(k.texto ?? "", 20).slice(0, 4);
     g(`<rect x="${cx - 280}" y="${cy - 460}" width="560" height="920" rx="60" fill="#0d0f17" stroke="#2a2f45" stroke-width="10"/><rect x="${cx - 70}" y="${cy - 440}" width="140" height="26" rx="13" fill="#000"/><circle cx="${cx - 200}" cy="${cy - 350}" r="30" fill="#ff3b6b"/><text x="${cx - 200}" y="${cy - 338}" font-family="Arial Black, Arial" font-size="30" fill="#fff" text-anchor="middle">${esc((k.remetente ?? "?").slice(0, 1).toUpperCase())}</text><text x="${cx - 155}" y="${cy - 355}" font-family="Arial Black, Arial" font-size="34" fill="#fff">${esc((k.remetente ?? "Desconhecido").slice(0, 16))}</text><text x="${cx - 155}" y="${cy - 318}" font-family="Arial" font-size="24" fill="#8a90a8">online</text><rect x="${cx - 120}" y="${cy - 270}" width="240" height="40" rx="20" fill="#ff3b6b"/><text x="${cx}" y="${cy - 242}" font-family="Arial Black, Arial" font-size="20" fill="#fff" text-anchor="middle">MENSAGEM NOVA</text><rect x="${cx - 230}" y="${cy - 200}" width="${Math.min(460, 60 + Math.max(...msgs.map((m) => m.length), 4) * 21)}" height="${40 + msgs.length * 50}" rx="26" fill="#262b3d"/>${msgs.map((m, i) => `<text x="${cx - 200}" y="${cy - 150 + i * 50}" font-family="Arial" font-size="38" fill="#fff">${esc(m)}</text>`).join("")}`);
@@ -402,9 +404,10 @@ function escolha(c: Cores, e: NonNullable<AnimVideo["escolha"]>, W: number, prog
 }
 
 // ───────── elenco de desenho e mundo do prédio (cartum.ts) ─────────
-const CARTUM_CENARIOS = new Set<Cenario>(["predio", "apto-simples", "apto-rico"]);
+const CARTUM_CENARIOS = new Set<Cenario>(["predio", "apto-simples", "apto-rico", ...CENARIOS_RECORTE]);
 
-function fundoCartum(cena: AnimCena, W: number, H: number, t: number, seed: number) {
+function fundoCartum(cena: AnimCena, W: number, H: number, t: number, seed: number, pan: number) {
+  if ((CENARIOS_RECORTE as readonly string[]).includes(cena.cenario)) return fundoRecorte(cena.cenario, W, H, CHAO, t, pan);
   if (cena.cenario === "predio") return fachada(W, H, t, seed, cena.movimento, cena.paleta === "noite" || cena.paleta === "terror").svg;
   return interior(cena.cenario as "apto-simples" | "apto-rico", W, H, CHAO, t);
 }
@@ -416,6 +419,9 @@ function elencoNaCena(cena: AnimCena, video: AnimVideo) {
     .filter((x): x is { p: NonNullable<typeof x.p>; expr: NonNullable<typeof x.expr> } => !!x.p);
 }
 
+/** Função de desenho do elenco conforme o traço escolhido na tela. */
+const ator = (video: AnimVideo) => (video.traco === "recorte" ? personagemRecorte : personagem);
+
 /** Desenha 1 ou 2 personagens do elenco. No prédio, aparecem dentro de uma janela acesa em destaque. */
 function atores(cena: AnimCena, video: AnimVideo, W: number, H: number, t: number, dir: 1 | -1, px: number, seed: number) {
   const lista = elencoNaCena(cena, video);
@@ -423,24 +429,24 @@ function atores(cena: AnimCena, video: AnimVideo, W: number, H: number, t: numbe
   if (cena.cenario === "predio") {
     const j = fachada(W, H, 0, seed, undefined, false).janela;
     const ent = Math.min(1, t * 3);
-    const dentro = lista.map((a, i) => personagem(a.p, {
+    const dentro = lista.map((a, i) => ator(video)(a.p, {
       x: lista.length > 1 ? j.x + j.w * (i ? 0.72 : 0.28) : j.x + j.w / 2, base: j.y + j.h + 40, escala: lista.length > 1 ? 0.72 : 0.9,
       expr: a.expr, acao: ["andando", "correndo", "sem-personagem", "sentado"].includes(cena.acao) ? "parado" : cena.acao, t, dir: lista.length > 1 ? (i ? -1 : 1) : dir, seed: seed + i * 11,
     })).join("");
     return `<g opacity="${n(ent)}"><rect x="${j.x - 18}" y="${j.y - 18}" width="${j.w + 36}" height="${j.h + 36}" rx="16" fill="#3a2f2a"/><clipPath id="janelaAtor"><rect x="${j.x}" y="${j.y}" width="${j.w}" height="${j.h}" rx="8"/></clipPath><g clip-path="url(#janelaAtor)"><rect x="${j.x}" y="${j.y}" width="${j.w}" height="${j.h}" fill="#f1e2bf"/>${dentro}</g><rect x="${j.x}" y="${j.y}" width="${j.w}" height="${j.h}" rx="8" fill="none" stroke="#2b1f1a" stroke-width="8"/></g>`;
   }
   if (close && lista[0]) {
-    return personagem(lista[0].p, { x: W / 2, base: CHAO, escala: 2.3, expr: lista[0].expr, acao: cena.acao, t, dir, close: true, seed });
+    return ator(video)(lista[0].p, { x: W / 2, base: CHAO, escala: 2.3, expr: lista[0].expr, acao: cena.acao, t, dir, close: true, seed });
   }
   if (lista.length === 2) {
     // um de frente para o outro
-    return lista.map((a, i) => personagem(a.p, { x: W * (i ? 0.7 : 0.3), base: CHAO, escala: 1, expr: a.expr, acao: cena.acao, t, dir: i ? -1 : 1, seed: seed + i * 11 })).join("");
+    return lista.map((a, i) => ator(video)(a.p, { x: W * (i ? 0.7 : 0.3), base: CHAO, escala: 1, expr: a.expr, acao: cena.acao, t, dir: i ? -1 : 1, seed: seed + i * 11 })).join("");
   }
   // sentado: no sofá (apartamento rico) ou no colchão (simples)
-  const sentado = cena.acao === "sentado" && (cena.cenario === "apto-rico" || cena.cenario === "apto-simples");
-  const x = sentado ? (cena.cenario === "apto-rico" ? W - 300 : 200) : px;
-  const base = sentado ? CHAO - (cena.cenario === "apto-rico" ? 40 : 10) : CHAO;
-  return personagem(lista[0].p, { x, base, escala: 1.1, expr: lista[0].expr, acao: cena.acao, t, dir: sentado ? (cena.cenario === "apto-rico" ? -1 : 1) : dir, seed });
+  const sentado = cena.acao === "sentado" && (cena.cenario === "apto-rico" || cena.cenario === "apto-simples" || cena.cenario === "sala-tv");
+  const x = sentado ? (cena.cenario === "apto-rico" ? W - 300 : cena.cenario === "sala-tv" ? W / 2 + 60 : 200) : px;
+  const base = sentado ? CHAO - (cena.cenario === "apto-rico" ? 40 : cena.cenario === "sala-tv" ? 60 : 10) : CHAO;
+  return ator(video)(lista[0].p, { x, base, escala: 1.1, expr: lista[0].expr, acao: cena.acao, t, dir: sentado ? (cena.cenario === "apto-rico" ? -1 : 1) : dir, seed });
 }
 
 export type QuadroEntrada = {
@@ -465,7 +471,7 @@ export function quadro(q: QuadroEntrada): string {
   const tremor = efeito === "tremor" || (perigo && t < 0.5) ? [Math.sin(t * 53) * 9, Math.cos(t * 47) * 7] : [0, 0];
   const px = cena.acao === "andando" || cena.acao === "correndo" ? W * (dir > 0 ? 0.38 : 0.62) : W * (objetos.has("porta") ? 0.38 : 0.5);
 
-  const cena1 = (CARTUM_CENARIOS.has(cena.cenario) ? fundoCartum(cena, W, H, t, q.seed) : fundo(c, cena.cenario, W, H, pan, q.seed, objetos, t))
+  const cena1 = (CARTUM_CENARIOS.has(cena.cenario) ? fundoCartum(cena, W, H, t, q.seed, pan) : fundo(c, cena.cenario, W, H, pan, q.seed, objetos, t))
     + (elencoNaCena(cena, q.video).length ? atores(cena, q.video, W, H, t, dir, px, q.seed) : boneco(c, cena.acao, px, t, dir, q.video.corPersonagem ?? "#e23a3a", objetos));
   const partes: string[] = [];
   partes.push(`<g transform="translate(${n(tremor[0] + (W - W * zoom) / 2)} ${n(tremor[1] + (CHAO - CHAO * zoom) / 2)}) scale(${n(zoom * 1000) / 1000})">${cena1}</g>`);

@@ -179,7 +179,7 @@ export const CATALOGO: ItemCatalogo[] = [
   { id: "cloudflare-ai", nome: "Cloudflare Workers AI (Llama e FLUX grátis)", empresa: "Cloudflare", capacidades: { texto: 5, imagem: 5, transcricao: 7 }, custo: 0, rotas: [dir("cloudflare")] },
   { id: "pollinations-imagem", nome: "Pollinations (imagem grátis, FLUX)", empresa: "Pollinations", capacidades: { imagem: 5 }, custo: 0, rotas: [dir("pollinations")], nota: "Sem chave. Reserva grátis de imagens." },
   { id: "hf-flux", nome: "Hugging Face (FLUX schnell grátis)", empresa: "Hugging Face", capacidades: { imagem: 5 }, custo: 0, rotas: [dir("huggingface", "black-forest-labs/FLUX.1-schnell")] },
-  { id: "edge-tts", nome: "Vozes neurais da Microsoft (grátis)", empresa: "Microsoft", capacidades: { voz: 6 }, custo: 0, rotas: [dir("edge")], nota: "Francisca, Thalita, Antônio e Macério em português. Sem chave." },
+  { id: "edge-tts", nome: "Vozes neurais da Microsoft (grátis)", empresa: "Microsoft", capacidades: { voz: 6 }, custo: 0, rotas: [dir("edge")], nota: "Francisca, Thalita e Antônio em português, mais sotaques de Portugal e estrangeiros. Sem chave." },
   // vozes clonadas (tela Minha voz): só entram quando a voz escolhida é "minha:<id>"
   { id: "minha-voz-cartesia", nome: "Minha voz (Cartesia)", empresa: "Cartesia", capacidades: { voz: 2 }, custo: 1, rotas: [dir("cartesia", "sonic-3.6")], nota: "Voz clonada na tela Minha voz." },
   { id: "minha-voz-local", nome: "Minha voz (no computador)", empresa: "Chatterbox (local)", capacidades: { voz: 1 }, custo: 0, rotas: [dir("voz-local")], nota: "Reserva grátis da voz clonada; precisa do modelo instalado em tools/voz-local." },
