@@ -16,6 +16,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { ConferirGoogle } from "@/components/vendas/conferir-google";
 
 type Props = {
   site: { id: string; nome: string; published: boolean; slug: string | null; prospectId: string | null; aiNotice: string | null; setor: string };
@@ -119,6 +120,7 @@ export function ProjetoView({ site, stats, temExemplos, visual, base, local, sug
           <Link href={`/painel/sites/${site.id}/editor`} className={buttonVariants({ variant: "outline", className: "h-10 sm:h-9" })}>
             <Pencil /> Editar
           </Link>
+          <ConferirGoogle siteId={site.id} aoAplicar={recarregar} />
           <a href={`/api/vendas/sites/${site.id}/zip`} download className={buttonVariants({ variant: "outline", className: "h-10 sm:h-9" })}>
             <Download /> Baixar
           </a>

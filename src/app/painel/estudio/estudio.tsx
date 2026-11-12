@@ -204,7 +204,7 @@ function Ferramenta({ cap, nome, opcoes, podeConfigurar, tarefas, agora, onCriad
           action={(fd) => start(() => enviar(fd))}
           className="grid gap-3.5 rounded-2xl border bg-card p-4"
         >
-          <h2 className="font-display font-semibold">{nome}</h2>
+          <h2 className="font-semibold">{nome}</h2>
           <Campos cap={cap} />
 
           {temUpload && (
@@ -644,7 +644,7 @@ function EquipeAgentes({ pronta, podeConfigurar }: { pronta: boolean; podeConfig
         )}
         <form onSubmit={(ev) => { ev.preventDefault(); if (!rodando) void rodar(new FormData(ev.currentTarget)); }} className="grid gap-3.5 rounded-2xl border bg-card p-4">
           <div>
-            <h2 className="font-display font-semibold">Equipe de agentes</h2>
+            <h2 className="font-semibold">Equipe de agentes</h2>
             <p className="text-sm text-muted-foreground">Um gerente planeja, o redator escreve, o revisor critica e o redator entrega a versão final.</p>
           </div>
           <div className="grid gap-1.5">
@@ -756,7 +756,7 @@ function VerTexto({ r }: { r: Rascunho | VersaoFinal }) {
   const mudancas = "mudancas" in r ? r.mudancas : [];
   return (
     <div className="grid gap-2.5">
-      <h3 className="font-display text-base font-semibold">{r.titulo}</h3>
+      <h3 className="text-base font-semibold">{r.titulo}</h3>
       <p className="max-w-prose whitespace-pre-wrap">{r.texto}</p>
       {mudancas.length > 0 && <p className="text-xs text-muted-foreground">Mudou: {mudancas.join("; ")}</p>}
       <div className="flex gap-1.5">

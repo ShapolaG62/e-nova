@@ -16,7 +16,7 @@ export const CREDENCIAIS: Credencial[] = [
   { id: "together", nome: "Together AI", campos: [{ id: "apiKey", rotulo: "API key", segredo: true }], ondePegar: "https://api.together.ai/settings/api-keys" },
   { id: "fal", nome: "fal.ai", campos: [{ id: "apiKey", rotulo: "API key", segredo: true }], ondePegar: "https://fal.ai/dashboard/keys", observacao: "Uma chave roda FLUX, Kling, Luma, Hailuo, Pika, Wan, CogVideoX, Veo, Recraft, Ideogram e mais." },
   { id: "replicate", nome: "Replicate", campos: [{ id: "apiKey", rotulo: "API token", segredo: true }], ondePegar: "https://replicate.com/account/api-tokens", observacao: "Milhares de modelos abertos por um token." },
-  { id: "ollama", nome: "IA local (Ollama)", campos: [], ondePegar: "https://ollama.com", observacao: "Roda no seu computador; sempre fica por último como reserva grátis." },
+  { id: "freellmapi", nome: "FreeLLMAPI (34 IAs grátis num lugar só)", campos: [{ id: "url", rotulo: "Endereço", segredo: false, dica: "Padrão: http://localhost:3001/v1" }, { id: "apiKey", rotulo: "Chave unificada", segredo: true, dica: "No painel da FreeLLMAPI (localhost:3001), página Keys, no topo." }], ondePegar: "http://localhost:3001", observacao: "Roteador grátis que roda neste computador e junta Google, Groq, NVIDIA, Cerebras, Mistral, OpenRouter e outros. Escolhe o melhor modelo e troca sozinho quando um bate o limite." },
   { id: "bfl", nome: "Black Forest Labs (FLUX)", campos: [{ id: "apiKey", rotulo: "API key", segredo: true }], ondePegar: "https://api.bfl.ai" },
   { id: "stability", nome: "Stability AI (SD / Clipdrop)", campos: [{ id: "apiKey", rotulo: "API key", segredo: true }], ondePegar: "https://platform.stability.ai/account/keys" },
   { id: "adobe", nome: "Adobe Firefly", campos: [{ id: "clientId", rotulo: "Client ID" }, { id: "clientSecret", rotulo: "Client secret", segredo: true }], ondePegar: "https://developer.adobe.com/firefly-services/" },
@@ -84,7 +84,6 @@ export const CATALOGO: ItemCatalogo[] = [
   { id: "qwen", nome: "Qwen 2.5", empresa: "Alibaba Cloud", capacidades: { texto: 7 }, custo: 1, rotas: [oc("qwen", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen-plus"), oc("together", "https://api.together.xyz/v1", "Qwen/Qwen2.5-72B-Instruct-Turbo")] },
   { id: "llama", nome: "Llama 3.1 / 3.3", empresa: "Meta (open source)", capacidades: { texto: 7 }, custo: 1, rotas: [oc("together", "https://api.together.xyz/v1", "meta-llama/Llama-3.3-70B-Instruct-Turbo")], nota: "A Groq tirou o Llama 3.3 do catálogo; ela agora aparece como “Groq (gpt-oss / Qwen)”." },
   { id: "groq-texto", nome: "Groq (gpt-oss-120b / Qwen 3.8, ultrarrápido)", empresa: "Groq", capacidades: { texto: 8 }, custo: 0, rotas: [oc("groq", "https://api.groq.com/openai/v1", "openai/gpt-oss-120b"), oc("groq", "https://api.groq.com/openai/v1", "qwen/qwen3.8-27b")], nota: "Plano grátis com limite por minuto e por dia." },
-  { id: "local", nome: "IA local (Qwen / Llama / Mistral no seu PC)", empresa: "Ollama", capacidades: { texto: 4 }, custo: 0, rotas: [{ via: "ollama", provedor: "ollama" }], nota: "Sempre disponível como reserva, sem custo." },
   { id: "crewai", nome: "CrewAI", empresa: "Framework", capacidades: { texto: 1 }, custo: 0, rotas: [], status: "framework", nota: "Biblioteca em Python. O E-Nova tem a Equipe de agentes nativa (gerente → redator → revisor), que faz o mesmo papel usando as IAs de texto acima." },
   { id: "langgraph", nome: "LangChain / LangGraph", empresa: "Framework", capacidades: { texto: 1 }, custo: 0, rotas: [], status: "framework", nota: "Framework de fluxos. Substituído pelo roteador e pela Equipe de agentes nativos." },
   { id: "autogpt", nome: "AutoGPT / TaskingAI", empresa: "Framework", capacidades: { texto: 1 }, custo: 0, rotas: [], status: "framework", nota: "Agentes autônomos. Use a Equipe de agentes do Estúdio." },
@@ -142,7 +141,6 @@ export const CATALOGO: ItemCatalogo[] = [
   { id: "deepgram", nome: "Deepgram Nova", empresa: "Deepgram", capacidades: { transcricao: 9 }, custo: 1, rotas: [dir("deepgram", "nova-3")] },
   { id: "gemini-transcricao", nome: "Gemini (transcrição rápida)", empresa: "Google", capacidades: { transcricao: 8 }, custo: 1, rotas: [dir("gemini", "gemini-3.5-flash"), dir("gemini", "gemini-3.6-flash")], nota: "Usa a mesma chave do Gemini. Ótimo no português; nos Cortes vai em pedaços de 60 s para os tempos não escorregarem." },
   { id: "whisper-openai", nome: "Whisper (OpenAI)", empresa: "OpenAI", capacidades: { transcricao: 8 }, custo: 1, rotas: [oc("openai", OAI, "whisper-1")] },
-  { id: "whisper-local", nome: "Whisper local", empresa: "E-Nova (local)", capacidades: { transcricao: 5 }, custo: 0, rotas: [{ via: "local", provedor: "ollama", modelo: "whisper" }], nota: "Já usado nos Cortes virais. Reserva grátis." },
 
   // ───────── Voz ─────────
   { id: "elevenlabs", nome: "ElevenLabs (voz, clonagem e efeitos)", empresa: "ElevenLabs", capacidades: { voz: 10, musica: 7, "limpar-audio": 8 }, custo: 2, rotas: [dir("elevenlabs", "eleven_multilingual_v2")] },
@@ -174,8 +172,13 @@ export const CATALOGO: ItemCatalogo[] = [
   { id: "llm7", nome: "LLM7.io (modelos grátis)", empresa: "LLM7", capacidades: { texto: 5 }, custo: 0, rotas: [oc("llm7", "https://api.llm7.io/v1", "default")] },
 
   // ───────── Grátis (reservas sem custo, vindas do MeuStudio) ─────────
+  // FreeLLMAPI primeiro em tudo que é grátis: ela mesma escolhe o melhor modelo e troca de provedor no limite
+  { id: "freellmapi-texto", nome: "FreeLLMAPI (melhor IA grátis do momento)", empresa: "FreeLLMAPI", capacidades: { texto: 10 }, custo: 0, rotas: [dir("freellmapi", "auto:fast"), dir("freellmapi", "auto:balanced")], nota: "auto:fast (o mais estável: Gemini Flash e similares, 5 s); se falhar, auto:balanced. auto:smart, reliable e fusion travam com poucos provedores cadastrados." },
+  { id: "freellmapi-imagem", nome: "FreeLLMAPI (imagem grátis)", empresa: "FreeLLMAPI", capacidades: { imagem: 7 }, custo: 0, rotas: [dir("freellmapi", "auto")] },
+  { id: "freellmapi-video", nome: "FreeLLMAPI (vídeo grátis, anima fotos)", empresa: "FreeLLMAPI", capacidades: { video: 6 }, custo: 0, rotas: [dir("freellmapi", "auto")], nota: "Pollinations e Hugging Face; aceita uma foto de partida." },
+  { id: "freellmapi-voz", nome: "FreeLLMAPI (voz grátis)", empresa: "FreeLLMAPI", capacidades: { voz: 3 }, custo: 0, rotas: [dir("freellmapi", "auto")] },
   { id: "pollinations-texto", nome: "Pollinations (texto grátis)", empresa: "Pollinations", capacidades: { texto: 5 }, custo: 0, rotas: [dir("pollinations", "openai"), dir("pollinations", "openai")], nota: "Sem chave. Entra quando as IAs com chave falham (2 tentativas)." },
-  { id: "openrouter-free", nome: "OpenRouter (Llama / DeepSeek grátis)", empresa: "OpenRouter", capacidades: { texto: 6 }, custo: 0, rotas: [dir("openrouter", "meta-llama/llama-3.3-70b-instruct:free"), dir("openrouter", "deepseek/deepseek-chat-v3-0324:free")] },
+  { id: "openrouter-free", nome: "OpenRouter (Gemma / Nemotron grátis)", empresa: "OpenRouter", capacidades: { texto: 6 }, custo: 0, rotas: [dir("openrouter", "google/gemma-4-26b-a4b-it:free"), dir("openrouter", "nvidia/nemotron-3.5-lightning:free")], nota: "Os modelos :free mudam com o tempo; troque o id na tela da Central quando um sair." },
   { id: "cloudflare-ai", nome: "Cloudflare Workers AI (Llama e FLUX grátis)", empresa: "Cloudflare", capacidades: { texto: 5, imagem: 5, transcricao: 7 }, custo: 0, rotas: [dir("cloudflare")] },
   { id: "pollinations-imagem", nome: "Pollinations (imagem grátis, FLUX)", empresa: "Pollinations", capacidades: { imagem: 5 }, custo: 0, rotas: [dir("pollinations")], nota: "Sem chave. Reserva grátis de imagens." },
   { id: "hf-flux", nome: "Hugging Face (FLUX schnell grátis)", empresa: "Hugging Face", capacidades: { imagem: 5 }, custo: 0, rotas: [dir("huggingface", "black-forest-labs/FLUX.1-schnell")] },

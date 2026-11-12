@@ -5,11 +5,7 @@
 /* dentro de .marca-enova (páginas públicas dos clientes) as classes dark: não valem: elas ficam sempre claras */
 @custom-variant dark (&:is(.dark *):not(.marca-enova, .marca-enova *));
 
-/*
- * E-Nova — "sinal & estrela"
- * Lagoa (sinal do NFC) para ação, dourado só para notas/estrelas,
- * tinta azul-petróleo para texto e navegação, papel frio de fundo.
- */
+/* Liga as cores e fontes do tema às classes do Tailwind */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -66,90 +62,149 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/*
- * Visual "Brasa" (o mesmo espírito do layout Brasa dos sites): quase preto, dourado de destaque,
- * títulos condensados em caixa alta, cantos retos. O escuro é o padrão da equipe; o claro é "areia".
- * Dourado com texto escuro nos botões (contraste alto); no claro o dourado é queimado para texto passar AA.
- */
+/* Escalas de status do Tailwind puxadas para as cores da Mesa de edição (selos de status pelo app usam sky/emerald/amber) */
+@theme {
+  --color-sky-50: color-mix(in oklab, #4c8dff 92%, white);
+  --color-sky-100: color-mix(in oklab, #4c8dff 84%, white);
+  --color-sky-200: color-mix(in oklab, #4c8dff 70%, white);
+  --color-sky-300: color-mix(in oklab, #4c8dff 50%, white);
+  --color-sky-400: color-mix(in oklab, #4c8dff 25%, white);
+  --color-sky-500: #4c8dff;
+  --color-sky-600: color-mix(in oklab, #4c8dff 82%, #0b1220);
+  --color-sky-700: color-mix(in oklab, #4c8dff 66%, #0b1220);
+  --color-sky-800: color-mix(in oklab, #4c8dff 50%, #0b1220);
+  --color-sky-900: color-mix(in oklab, #4c8dff 36%, #0b1220);
+  --color-sky-950: color-mix(in oklab, #4c8dff 24%, #0b1220);
+  --color-emerald-50: color-mix(in oklab, #3dc489 92%, white);
+  --color-emerald-100: color-mix(in oklab, #3dc489 84%, white);
+  --color-emerald-200: color-mix(in oklab, #3dc489 70%, white);
+  --color-emerald-300: color-mix(in oklab, #3dc489 50%, white);
+  --color-emerald-400: color-mix(in oklab, #3dc489 25%, white);
+  --color-emerald-500: #3dc489;
+  --color-emerald-600: color-mix(in oklab, #3dc489 82%, #0b1220);
+  --color-emerald-700: color-mix(in oklab, #3dc489 66%, #0b1220);
+  --color-emerald-800: color-mix(in oklab, #3dc489 50%, #0b1220);
+  --color-emerald-900: color-mix(in oklab, #3dc489 36%, #0b1220);
+  --color-emerald-950: color-mix(in oklab, #3dc489 24%, #0b1220);
+  --color-amber-50: color-mix(in oklab, #f2b33d 92%, white);
+  --color-amber-100: color-mix(in oklab, #f2b33d 84%, white);
+  --color-amber-200: color-mix(in oklab, #f2b33d 70%, white);
+  --color-amber-300: color-mix(in oklab, #f2b33d 50%, white);
+  --color-amber-400: color-mix(in oklab, #f2b33d 25%, white);
+  --color-amber-500: #f2b33d;
+  --color-amber-600: color-mix(in oklab, #f2b33d 82%, #0b1220);
+  --color-amber-700: color-mix(in oklab, #f2b33d 66%, #0b1220);
+  --color-amber-800: color-mix(in oklab, #f2b33d 50%, #0b1220);
+  --color-amber-900: color-mix(in oklab, #f2b33d 36%, #0b1220);
+  --color-amber-950: color-mix(in oklab, #f2b33d 24%, #0b1220);
+}
+
 :root {
-  --ink: #141414;
-  --signal: #9a6400;
-  --star: #c98a00;
-  --background: #f3f0ea;
-  --foreground: #161514;
+  --ink: #121a2b;
+  --signal: #2f6feb;
+  --star: #b7791f;
+  --background: #e9edf3;
+  --foreground: #121a2b;
   --card: #ffffff;
-  --card-foreground: #161514;
+  --card-foreground: #121a2b;
   --popover: #ffffff;
-  --popover-foreground: #161514;
-  --primary: #a36b00;
+  --popover-foreground: #121a2b;
+  --primary: #2f6feb;
   --primary-foreground: #ffffff;
-  --secondary: #ebe6dc;
-  --secondary-foreground: #161514;
-  --muted: #ece8e0;
-  --muted-foreground: #5f5a51;
-  --accent: #f6ead2;
-  --accent-foreground: #6b4600;
-  --destructive: #c4313b;
-  --success: #17804b;
+  --secondary: #dde3ec;
+  --secondary-foreground: #121a2b;
+  --muted: #e1e6ee;
+  --muted-foreground: #4e5a70;
+  --accent: #dfe9fd;
+  --accent-foreground: #1d4fc4;
+  --destructive: #c9363f;
+  --success: #137a4c;
   --success-foreground: #ffffff;
-  --warning: #c7840a;
-  --warning-foreground: #6a3f00;
-  --border: #dcd6ca;
-  --input: #cbc4b6;
-  --ring: #b97a06;
-  --chart-1: #c98a00;
-  --chart-2: #2b2b2b;
-  --chart-3: #4f6fd8;
-  --chart-4: #c2477a;
-  --chart-5: #9b958a;
-  --radius: 0.375rem;
-  --sidebar: #0b0b0c;
-  --sidebar-foreground: #b8b3a9;
-  --sidebar-primary: #e8ad2a;
-  --sidebar-primary-foreground: #141005;
-  --sidebar-accent: rgb(232 173 42 / 0.1);
+  --warning: #b8770b;
+  --warning-foreground: #6b4300;
+  --border: #cfd6e1;
+  --input: #8592a8;
+  --ring: #2f6feb;
+  --chart-1: #2f6feb;
+  --chart-2: #137a4c;
+  --chart-3: #c7306f;
+  --chart-4: #b8770b;
+  --chart-5: #8a96ab;
+  --radius: 0.625rem;
+  --area-operacao: #2f6feb;
+  --area-vendas: #137a4c;
+  --area-conteudo: #c7306f;
+  --area-gestao: #946000;
+  --area-conta: #4e5a70;
+  /* o menu é o tampo da mesa: tinta nos dois modos */
+  --sidebar: #121a2b;
+  --sidebar-foreground: #aeb8cb;
+  --sidebar-primary: #4c8dff;
+  --sidebar-primary-foreground: #0b1220;
+  --sidebar-accent: rgb(233 237 243 / 0.07);
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgb(255 255 255 / 0.07);
-  --sidebar-ring: #e8ad2a;
+  --sidebar-border: rgb(233 237 243 / 0.08);
+  --sidebar-ring: #4c8dff;
+  --sb-operacao: #4c8dff;
+  --sb-vendas: #3dc489;
+  --sb-conteudo: #e5508f;
+  --sb-gestao: #f2b33d;
+  --sb-conta: #9aa6bc;
   color-scheme: light;
 }
 
-/* Escuro (padrão): carvão em degraus, dourado brasa, texto quente. */
+/* Escuro (padrão): tinta em degraus, texto papel, cores de área vivas. */
 .dark {
-  --ink: #0b0b0c;
-  --background: #0c0c0d;
-  --foreground: #ece9e2;
-  --card: #141415;
-  --card-foreground: #ece9e2;
-  --popover: #1a1a1c;
-  --popover-foreground: #ece9e2;
-  --primary: #e8ad2a;
-  --primary-foreground: #141005;
-  --secondary: #1d1d1f;
-  --secondary-foreground: #ece9e2;
-  --muted: #1b1b1d;
-  --muted-foreground: #a09b91;
-  --accent: rgb(232 173 42 / 0.12);
-  --accent-foreground: #f4cf7a;
-  --destructive: #f0646a;
-  --success: #4fd08b;
-  --success-foreground: #04230f;
-  --warning: #f2b544;
+  --ink: #0d1422;
+  --background: #121a2b;
+  --foreground: #e9edf3;
+  --card: #182235;
+  --card-foreground: #e9edf3;
+  --popover: #1c2740;
+  --popover-foreground: #e9edf3;
+  --primary: #4c8dff;
+  --primary-foreground: #0b1220;
+  --secondary: #1f2a40;
+  --secondary-foreground: #e9edf3;
+  --muted: #1d283d;
+  --muted-foreground: #9aa6bc;
+  --accent: rgb(76 141 255 / 0.14);
+  --accent-foreground: #a9c8ff;
+  --destructive: #ff6b6b;
+  --success: #3dc489;
+  --success-foreground: #04240f;
+  --warning: #f2b33d;
   --warning-foreground: #f6c76b;
-  --border: rgb(255 255 255 / 0.08);
-  --input: rgb(255 255 255 / 0.14);
-  --ring: #e8ad2a;
-  --star: #f2c14e;
-  --signal: #f0b53a;
-  --chart-1: #e8ad2a;
-  --chart-2: #ece9e2;
-  --chart-3: #7097f0;
-  --chart-4: #e07aa5;
-  --chart-5: #6f6a62;
-  --sidebar: #070708;
-  --sidebar-border: rgb(255 255 255 / 0.06);
+  --border: rgb(233 237 243 / 0.09);
+  --input: #66748f;
+  --ring: #4c8dff;
+  --star: #f2b33d;
+  --signal: #4c8dff;
+  --chart-1: #4c8dff;
+  --chart-2: #3dc489;
+  --chart-3: #e5508f;
+  --chart-4: #f2b33d;
+  --chart-5: #6f7c95;
+  --area-operacao: #4c8dff;
+  --area-vendas: #3dc489;
+  --area-conteudo: #e5508f;
+  --area-gestao: #f2b33d;
+  --area-conta: #9aa6bc;
+  --sidebar: #0d1422;
+  --sidebar-border: rgb(233 237 243 / 0.07);
   color-scheme: dark;
 }
+
+/* Logo fora do menu: folha tinta no claro, folha papel no escuro */
+:root { --logo-folha: #121a2b; --logo-tinta: #e9edf3; }
+.dark { --logo-folha: #e9edf3; --logo-tinta: #121a2b; }
+
+/* Cor da área atual (o menu marca no <html> em que área a página está) */
+:root { --area: var(--area-operacao); --sb-area: var(--sb-operacao); }
+html[data-area="vendas"] { --area: var(--area-vendas); --sb-area: var(--sb-vendas); }
+html[data-area="conteudo"] { --area: var(--area-conteudo); --sb-area: var(--sb-conteudo); }
+html[data-area="gestao"] { --area: var(--area-gestao); --sb-area: var(--sb-gestao); }
+html[data-area="conta"] { --area: var(--area-conta); --sb-area: var(--sb-conta); }
 
 @layer base {
   * {
@@ -163,25 +218,30 @@
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
   }
-  /* títulos de página e de seção: condensados em caixa alta (Brasa); h3 fica no texto normal, mais legível */
+  /* Títulos em Schibsted Grotesk, sempre em letras normais. O h1 é o único grande da página;
+     h2/h3 ficam firmes mas contidos (a cor da área faz o resto). */
   h1,
-  h2 {
+  h2,
+  h3 {
     font-family: var(--font-display);
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-    font-weight: 600;
+    text-wrap: balance;
+  }
+  h1 {
+    font-weight: 700;
+    letter-spacing: -0.028em;
+    line-height: 1.05;
+  }
+  h2 {
+    font-weight: 650;
+    letter-spacing: -0.018em;
   }
   h3 {
-    letter-spacing: -0.005em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
-  }
-  h1 {
-    letter-spacing: 0.005em;
-    line-height: 1.02;
-    text-wrap: balance;
   }
   ::selection {
     background: color-mix(in oklab, var(--primary) 25%, transparent);
@@ -196,12 +256,11 @@
   }
 }
 
-/* Números grandes: display com algarismos tabulares */
+/* Números grandes: algarismos proporcionais (os tabulares da Schibsted deixam ponto e vírgula largos demais em R$ 1.428,70) */
 .num {
   font-family: var(--font-display);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-  letter-spacing: 0;
+  font-variant-numeric: lining-nums proportional-nums;
+  letter-spacing: -0.02em;
 }
 
 /* Sigla com explicação (glossário) */
@@ -253,13 +312,35 @@
   }
 }
 
-/* Brasa: cartão de destaque com borda superior dourada */
-.borda-brasa {
-  border-top: 3px solid var(--primary);
+/* Cartão de destaque: filete superior na cor da área em que a página está */
+.borda-brasa,
+.borda-area {
+  border-top: 3px solid var(--area);
+}
+
+/* Marcador ao lado do título da página: a "aba" da área (cor muda conforme o menu) */
+.marca-area {
+  position: relative;
+  padding-left: 0.95rem;
+}
+.marca-area::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.18em;
+  bottom: 0.18em;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--area);
+}
+
+/* Números grandes ganham a cor da área só quando pedem destaque */
+.num-area {
+  color: var(--area);
 }
 
 /* Páginas públicas que os CLIENTES veem (avaliação, indisponível, link na bio): mantêm a marca E-Nova
- * clara em verde-lagoa, sem o visual Brasa da equipe. */
+ * clara em verde-lagoa, sem o visual da equipe. */
 .marca-enova {
   --signal: #0b8f8c; --star: #e9a800; --background: #f5f7f7; --foreground: #10292d; --card: #ffffff; --card-foreground: #10292d;
   --popover: #ffffff; --popover-foreground: #10292d; --primary: #0a7f7c; --primary-foreground: #ffffff; --secondary: #edf2f1;
@@ -274,3 +355,133 @@
   letter-spacing: -0.015em;
   font-weight: 700;
 }
+
+/* ── Cabeçalho das páginas: foto da área, serifa editorial, entrada suave ── */
+.cab-area {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: #121a2b;
+  color: #fff;
+  min-height: 11.5rem;
+  display: flex;
+  align-items: flex-end;
+}
+.cab-area-foto {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--cab-foto, url(/areas/operacao.jpg)) center / cover no-repeat;
+  animation: cab-zoom 1.6s cubic-bezier(.2, .7, .2, 1) both;
+}
+/* véu: escuro onde fica o texto (esquerda/baixo), foto aparecendo à direita */
+.cab-area-foto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(14, 20, 34, .94) 0%, rgba(14, 20, 34, .78) 42%, rgba(14, 20, 34, .25) 100%),
+    linear-gradient(0deg, rgba(14, 20, 34, .55), transparent 60%);
+}
+html[data-area="vendas"] { --cab-foto: url(/areas/vendas.jpg); }
+html[data-area="conteudo"] { --cab-foto: url(/areas/conteudo.jpg); }
+html[data-area="gestao"] { --cab-foto: url(/areas/gestao.jpg); }
+html[data-area="conta"] { --cab-foto: url(/areas/conta.jpg); }
+.cab-area-txt {
+  position: relative;
+  width: 100%;
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  display: grid;
+  justify-items: start;
+}
+.cab-area-txt > * {
+  animation: cab-sobe .8s cubic-bezier(.2, .7, .2, 1) both;
+}
+.cab-area-txt > :nth-child(2) { animation-delay: .06s; }
+.cab-area-txt > :nth-child(3) { animation-delay: .12s; }
+.cab-area-txt > :nth-child(4) { animation-delay: .18s; }
+.cab-area-rotulo {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .55rem;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .78);
+}
+.cab-area-rotulo::before {
+  content: "";
+  width: 1.6rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sb-area, var(--area));
+}
+.cab-area-rotulo::after { content: "Operação"; }
+html[data-area="vendas"] .cab-area-rotulo::after { content: "Vendas"; }
+html[data-area="conteudo"] .cab-area-rotulo::after { content: "Conteúdo"; }
+html[data-area="gestao"] .cab-area-rotulo::after { content: "Gestão"; }
+html[data-area="conta"] .cab-area-rotulo::after { content: "Conta"; }
+.cab-area-titulo {
+  font-family: var(--font-editorial), Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(2rem, 4.4vw, 3.1rem);
+  line-height: 1.02;
+  letter-spacing: -.02em;
+  max-width: 22ch;
+  color: #fff;
+}
+.cab-area-titulo em { font-style: italic; }
+.cab-area-sub {
+  margin-top: .6rem;
+  max-width: 60ch;
+  font-size: .95rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, .8);
+}
+.cab-area-acoes {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+/* botões claros sobre a foto: o "outline" vira vidro fosco */
+.cab-area-acoes :is([data-slot="button"], a.bg-background):not(.bg-primary) {
+  background: rgba(255, 255, 255, .12);
+  border-color: rgba(255, 255, 255, .28);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+.cab-area-acoes :is([data-slot="button"], a.bg-background):not(.bg-primary):hover { background: rgba(255, 255, 255, .22); color: #fff; }
+@keyframes cab-zoom { from { transform: scale(1.07); } to { transform: scale(1); } }
+@keyframes cab-sobe { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+/* o conteúdo da página entra logo depois do cabeçalho, uma vez */
+.cab-area ~ * { animation: cab-sobe .7s .15s cubic-bezier(.2, .7, .2, 1) both; }
+@media (max-width: 640px) {
+  .cab-area { min-height: 10rem; border-radius: 1rem; }
+  .cab-area-foto::after { background: linear-gradient(0deg, rgba(14, 20, 34, .95) 10%, rgba(14, 20, 34, .7) 60%, rgba(14, 20, 34, .45)); }
+  .cab-area-acoes > * { flex: 1 1 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cab-area-foto, .cab-area-txt > *, .cab-area ~ * { animation: none; }
+}
+
+/* Botões: sobem um pouco ao passar o mouse e "afundam" no clique */
+@media (hover: hover) {
+  [data-slot="button"]:not(:disabled):hover, a.inline-flex.rounded-lg:hover { transform: translateY(-1px); }
+}
+[data-slot="button"]:not(:disabled):active { transform: translateY(1px) scale(.98); }
+[data-slot="button"].bg-primary:not(:disabled):hover { box-shadow: 0 8px 20px -10px var(--primary); }
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="button"] { transform: none !important; }
+}
+/* até o menu dizer em que área a página está, não mostra foto nem rótulo de área (evita piscar a área errada) */
+html:not([data-area]) .cab-area-foto,
+html:not([data-area]) .cab-area-rotulo { visibility: hidden; }
+
+/* Gerador de vídeos: mostra só as opções do estilo escolhido */
+form:has(input[name="estilo"][value="animacao"]:checked) .so-ia,
+form:has(input[name="estilo"][value="fotos"]:checked) .so-animacao { display: none; }

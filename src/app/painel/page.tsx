@@ -38,16 +38,27 @@ async function Pendencias({ clientId }: { clientId?: string }) {
       (select count(*) from monitors where active and state = 'DOWN' ${scope})::int as down`);
   const p = res.rows[0];
   const items = [
-    { n: p.down, label: p.down === 1 ? "site fora do ar" : "sites fora do ar", href: "/painel/monitoramento", tone: "bg-red-50 text-red-900 border-red-200 dark:bg-red-950 dark:text-red-200 dark:border-red-900" },
-    { n: p.approvals, label: clientId ? "vídeo(s) para você aprovar" : "post(s) aguardando o cliente", href: "/painel/conteudo?status=AGUARDANDO_APROVACAO", tone: "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-900" },
-    { n: p.reviews, label: "avaliação(ões) sem resposta", href: "/painel/avaliacoes?status=PENDING", tone: "bg-sky-50 text-sky-900 border-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:border-sky-900" },
+    // cada aviso usa a cor de quem cuida dele: erro (vermelho), Conteúdo (magenta), Operação (azul)
+    { n: p.down, label: p.down === 1 ? "site fora do ar" : "sites fora do ar", href: "/painel/monitoramento", cor: "var(--destructive)" },
+    {
+      n: p.approvals,
+      label: clientId ? (p.approvals === 1 ? "vídeo para você aprovar" : "vídeos para você aprovar") : (p.approvals === 1 ? "post aguardando o cliente" : "posts aguardando o cliente"),
+      href: "/painel/conteudo?status=AGUARDANDO_APROVACAO", cor: "var(--area-conteudo)",
+    },
+    { n: p.reviews, label: p.reviews === 1 ? "avaliação sem resposta" : "avaliações sem resposta", href: "/painel/avaliacoes?status=PENDING", cor: "var(--area-operacao)" },
   ].filter((i) => i.n > 0);
   if (!items.length) return null;
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((i) => (
-        <Link key={i.href} href={i.href} className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${i.tone}`}>
-          <strong className="tabular-nums">{i.n}</strong> {i.label}
+        <Link
+          key={i.href}
+          href={i.href}
+          style={{ "--aviso": i.cor } as React.CSSProperties}
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color-mix(in_oklab,var(--aviso)_40%,transparent)] bg-[color-mix(in_oklab,var(--aviso)_12%,transparent)] px-3 py-2 text-sm text-foreground transition-colors hover:bg-[color-mix(in_oklab,var(--aviso)_20%,transparent)]"
+        >
+          <span className="size-2 rounded-full bg-[var(--aviso)]" aria-hidden />
+          <strong className="num text-base">{i.n}</strong> {i.label}
         </Link>
       ))}
     </div>

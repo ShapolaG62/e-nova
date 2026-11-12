@@ -28,7 +28,7 @@ export function PainelArea({ area, perfil, sinais, padrao, podeEditar }: { area:
     <section aria-labelledby={`ap-${area}`} className="grid content-start gap-4 rounded-xl border bg-card p-4 sm:p-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id={`ap-${area}`} className="font-display text-xl font-bold tracking-wide uppercase">{TITULO[area].nome}</h2>
+          <h2 id={`ap-${area}`} className="text-xl font-bold tracking-wide uppercase">{TITULO[area].nome}</h2>
           <p className="text-xs text-muted-foreground">
             {total} sinais nos últimos 30 dias{perfil.atualizadoEm ? ` · lições atualizadas em ${new Date(perfil.atualizadoEm).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}` : ""}
           </p>

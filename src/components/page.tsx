@@ -1,14 +1,18 @@
 import { cn } from "@/lib/utils";
 
 export function PageHeader({ title, subtitle, action }: { title: React.ReactNode; subtitle?: React.ReactNode; action?: React.ReactNode }) {
+  // Cabeçalho com a foto da área (public/areas/<área>.jpg, escolhida pelo CSS conforme html[data-area]),
+  // nome da área em cima, título em serifa editorial e as ações logo abaixo.
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 pb-1">
-      <div className="min-w-0">
-        <h1 className="text-[1.7rem] leading-[1.1] font-bold sm:text-[2.1rem]">{title}</h1>
-        {subtitle && <p className="mt-1.5 max-w-[65ch] text-[0.95rem] leading-relaxed text-muted-foreground">{subtitle}</p>}
+    <header className="cab-area">
+      <div className="cab-area-foto" aria-hidden />
+      <div className="cab-area-txt">
+        <p className="cab-area-rotulo" aria-hidden />
+        <h1 className="cab-area-titulo">{title}</h1>
+        {subtitle && <p className="cab-area-sub">{subtitle}</p>}
+        {action && <div className="cab-area-acoes">{action}</div>}
       </div>
-      {action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
-    </div>
+    </header>
   );
 }
 

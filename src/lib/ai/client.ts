@@ -30,7 +30,8 @@ export async function geminiKey(): Promise<string | null> {
 export async function activeAi(): Promise<{ provider: string; model: string; nome: string; rapida: boolean }> {
   const { candidatos } = await import("@/lib/ia-hub/roteador");
   const c = (await candidatos("texto")).find((x) => x.temChave && !x.emCastigo);
-  if (!c || c.rota.via === "ollama") return { provider: "ollama", model: await getSetting("ai.model", env.OLLAMA_MODEL), nome: "IA local", rapida: false };
+  // sem IA local: se nada estiver disponível, a tela avisa para ligar a FreeLLMAPI ou cadastrar uma chave
+  if (!c) return { provider: "nenhuma", model: "", nome: "Nenhuma IA disponível", rapida: true };
   return { provider: c.rota.provedor, model: c.rota.modelo ?? "", nome: c.item.nome, rapida: true };
 }
 
@@ -75,7 +76,7 @@ export async function generate<S extends z.ZodType>(opts: {
       e instanceof SemProvedor
         ? e.tentativas.length
           ? "Nenhuma IA conseguiu responder agora (todas falharam ou estão sem crédito). Veja a Central de IA."
-          : "Nenhuma IA de texto disponível. Ligue a IA local (Ollama) ou cadastre uma chave na Central de IA."
+          : "Nenhuma IA de texto disponível. Ligue a FreeLLMAPI ou cadastre uma chave na Central de IA."
         : "Falha inesperada ao gerar. Tente de novo.";
     await db
       .insert(t.aiGenerations)

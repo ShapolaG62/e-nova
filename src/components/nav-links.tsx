@@ -101,12 +101,29 @@ function gravarFechados(v: string) {
   ouvintes.forEach((f) => f());
 }
 
+/** Área de trabalho de cada grupo do menu: dá a cor (Operação azul, Vendas verde, Conteúdo magenta, Gestão âmbar). */
+export function areaDoGrupo(g: string) {
+  const k = g.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return (["operacao", "vendas", "conteudo", "gestao", "conta"] as const).find((a) => k.startsWith(a)) ?? "operacao";
+}
+
+/** Marca no <html> em que área a página está: o CSS pinta a aba do título e os destaques com essa cor. */
+function useMarcarArea(items: NavItem[]) {
+  const path = usePathname();
+  useEffect(() => {
+    const atual = [...items].sort((a, b) => b.href.length - a.href.length)
+      .find((i) => (i.href === "/painel" ? path === i.href : path === i.href || path.startsWith(i.href + "/")));
+    document.documentElement.dataset.area = atual ? areaDoGrupo(atual.group) : "operacao";
+  }, [path, items]);
+}
+
 function useActive() {
   const path = usePathname();
   return (href: string) => (href === "/painel" ? path === href : path === href || path.startsWith(href + "/"));
 }
 
 function SideLink({ it, active }: { it: NavItem; active: boolean }) {
+  const cor = `var(--sb-${areaDoGrupo(it.group)})`;
   const Icon = ICONS[it.icon];
   return (
     <Link
@@ -117,8 +134,8 @@ function SideLink({ it, active }: { it: NavItem; active: boolean }) {
         active ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
       )}
     >
-      {active && <span className="absolute top-1.5 bottom-1.5 -left-3 w-[3px] rounded-r-full bg-sidebar-primary" aria-hidden />}
-      <Icon className={cn("size-4 shrink-0 transition-colors", active ? "text-sidebar-primary" : "opacity-70 group-hover/link:opacity-100")} />
+      {active && <span className="absolute top-1.5 bottom-1.5 -left-3 w-[3px] rounded-r-full" style={{ background: cor }} aria-hidden />}
+      <Icon className={cn("size-4 shrink-0 transition-colors", !active && "opacity-70 group-hover/link:opacity-100")} style={active ? { color: cor } : undefined} />
       <span className="truncate">{it.label}</span>
     </Link>
   );
@@ -127,6 +144,7 @@ function SideLink({ it, active }: { it: NavItem; active: boolean }) {
 /** Barra lateral (desktop): grupos por área de trabalho, recolhíveis. O grupo da tela atual fica sempre aberto. */
 export function SideNav({ items }: { items: NavItem[] }) {
   const isActive = useActive();
+  useMarcarArea(items);
   const lista = items.filter((i) => !i.pinned);
   const groups = [...new Set(lista.map((i) => i.group))];
   const raw = useSyncExternalStore(assinarFechados, lerFechados, () => "");
@@ -152,9 +170,12 @@ export function SideNav({ items }: { items: NavItem[] }) {
               disabled={temAtivo}
               aria-expanded={aberto}
               aria-controls={id}
-              className="group/g flex w-full items-center justify-between rounded-md px-3 py-1 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-sidebar-foreground/45 transition-colors hover:text-sidebar-foreground/80 disabled:cursor-default disabled:hover:text-sidebar-foreground/45"
+              className="group/g flex w-full items-center justify-between rounded-md px-3 py-1 text-xs font-medium text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground/80 disabled:cursor-default disabled:hover:text-sidebar-foreground/45"
             >
-              {g}
+              <span className="flex items-center gap-2">
+                <span className="size-1.5 rounded-full" style={{ background: `var(--sb-${areaDoGrupo(g)})` }} aria-hidden />
+                {g}
+              </span>
               {!temAtivo && <ChevronDown className={cn("size-3.5 transition-transform", !aberto && "-rotate-90")} aria-hidden />}
             </button>
             {aberto && (
@@ -192,6 +213,7 @@ export function SideNavPinned({ items }: { items: NavItem[] }) {
 /** Abas inferiores (celular): 4 atalhos + "Mais" abrindo a gaveta com o resto. */
 export function MobileTabBar({ items }: { items: NavItem[] }) {
   const isActive = useActive();
+  useMarcarArea(items);
   const [open, setOpen] = useState(false);
   const tabs = items.filter((i) => i.tab).slice(0, 4);
   const pathname = usePathname();
@@ -216,7 +238,7 @@ export function MobileTabBar({ items }: { items: NavItem[] }) {
               <li key={it.href}>
                 <Link href={it.href} aria-current={active ? "page" : undefined} className="flex flex-col items-center gap-1 px-1 pt-2.5 pb-2">
                   <span className={cn("flex h-7 w-12 items-center justify-center rounded-full transition-colors", active && "bg-accent")}>
-                    <Icon className={cn("size-[1.15rem]", active ? "text-primary" : "text-muted-foreground")} />
+                    <Icon className={cn("size-[1.15rem]", !active && "text-muted-foreground")} style={active ? { color: "var(--area)" } : undefined} />
                   </span>
                   <span className={cn("max-w-full truncate text-[0.68rem]", active ? "font-semibold text-foreground" : "text-muted-foreground")}>{it.label}</span>
                 </Link>

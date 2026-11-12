@@ -16,6 +16,7 @@ import { buscarPlaces, setor as pegarSetor, novoBloco, type SiteDoc, telefoneBR 
 import {
   criarSite, outroVisual, publicar, garantirProspect, registrarContato, addHistorico, converterEmCliente,
   salvarImagem, baixarImagemUrl, prospectParaLead, buscaComNoFunil, linkPublico,
+  conferirNoGoogle, aplicarDoGoogle, type ConferenciaGoogle,
 } from "@/lib/sites/service";
 import { abordagem as gerarAbordagem, ligacao as gerarLigacao, pedidoLivre } from "@/lib/sites/ai";
 
@@ -232,6 +233,31 @@ export async function despublicarSiteAction(id: string): Promise<R<null>> {
   await audit(user, "sites.unpublish", { entity: "generated_site", entityId: id });
   revalidatePath(`/painel/sites/${id}`);
   return { ok: true, data: null };
+}
+
+/** Confere o site com o Google Maps: mostra o que está diferente (não muda nada). */
+export async function conferirGoogleAction(id: string): Promise<R<ConferenciaGoogle>> {
+  const user = await requirePermission("sites:write");
+  if (!uuid.safeParse(id).success) return { ok: false, message: "Inválido." };
+  if (!(await rateLimit(`google-site:${user.id}`, 30, 600))) return { ok: false, message: "Muitas conferências seguidas. Aguarde alguns minutos." };
+  const s = await pegarSite(id);
+  if (!s) return { ok: false, message: "Site não encontrado." };
+  try { return { ok: true, data: await conferirNoGoogle(s) }; }
+  catch (e) { const g = erroGoogleDe(e); return g && g.tipo !== "outro" ? { ok: false, message: g.titulo } : falha(e); }
+}
+
+/** Troca dados, fotos e/ou depoimentos do site pelos que estão hoje no Google Maps. */
+export async function aplicarGoogleAction(id: string, o: { dados: boolean; fotos: boolean; depoimentos: boolean }): Promise<R<string[]>> {
+  const user = await requirePermission("sites:write");
+  if (!uuid.safeParse(id).success) return { ok: false, message: "Inválido." };
+  const s = await pegarSite(id);
+  if (!s) return { ok: false, message: "Site não encontrado." };
+  try {
+    const feito = await aplicarDoGoogle(s, { dados: !!o.dados, fotos: !!o.fotos, depoimentos: !!o.depoimentos });
+    await audit(user, "sites.google", { entity: "generated_site", entityId: id, meta: { feito } });
+    revalidatePath(`/painel/sites/${id}`);
+    return { ok: true, data: feito };
+  } catch (e) { const g = erroGoogleDe(e); return g && g.tipo !== "outro" ? { ok: false, message: g.titulo } : falha(e); }
 }
 
 export async function excluirSiteAction(id: string): Promise<R<null>> {

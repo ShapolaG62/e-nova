@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ExternalLink, Sparkles } from "lucide-react";
 import { requirePermission } from "@/lib/auth/session";
-import { listaLayouts, listaSetores } from "@/lib/sites/engine";
+import { listaLayouts, listaPaletas, listaSetores } from "@/lib/sites/engine";
 import { PageHeader, PageSkeleton } from "@/components/page";
 import { MiniaturaSite } from "@/components/vendas/sites-ui";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,6 +21,7 @@ export default function Page() {
 async function Galeria() {
   await requirePermission("sites:write");
   const layouts = listaLayouts();
+  const paletas = listaPaletas();
   const setores = new Map(listaSetores().map((s) => [s.id, s]));
 
   return (
@@ -81,6 +82,33 @@ async function Galeria() {
           );
         })}
       </ul>
+
+      <section aria-labelledby="paletas" className="grid gap-3 pt-2">
+        <div className="grid gap-1">
+          <h2 id="paletas" className="text-xl font-semibold">Paletas prontas</h2>
+          <p className="text-sm text-muted-foreground">Cada paleta troca de uma vez as cores, o fundo e as fontes de qualquer visual. Escolha no editor do site, em “Paletas prontas”.</p>
+        </div>
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {paletas.map((p, i) => {
+            // cada paleta aparece num visual diferente, para mostrar que combinam com todos
+            const visual = layouts[i % layouts.length].id;
+            return (
+              <li key={p.id} className="flex flex-col overflow-hidden rounded-xl border bg-card">
+                <MiniaturaSite src={`/api/vendas/amostra/${visual}?paleta=${p.id}`} titulo={`Amostra da paleta ${p.nome}`} rolarAoPassar className="aspect-[4/5] border-b" />
+                <div className="grid gap-1 p-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="size-3.5 rounded-full ring-1 ring-black/10" style={{ background: p.cores[0] }} />
+                    <span className="size-3.5 rounded-full ring-1 ring-black/10" style={{ background: p.cores[1] }} />
+                    <span className="size-3.5 rounded-full ring-1 ring-black/10" style={{ background: p.fundo.bg }} />
+                    <h3 className="ml-1 truncate text-sm font-semibold">{p.nome}</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{p.clima}. Títulos em {p.fonte}.</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
     </div>
   );
 }

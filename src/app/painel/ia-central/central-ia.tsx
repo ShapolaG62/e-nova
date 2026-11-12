@@ -215,7 +215,7 @@ function Fila({ cap, prefs, configuradas, saude, salvando, onSalvar, onConectar 
     <section aria-labelledby="fila-titulo" className="min-w-0 rounded-2xl border bg-card">
       <header className="flex flex-wrap items-start justify-between gap-2 border-b p-4">
         <div className="min-w-0">
-          <h2 id="fila-titulo" className="font-display text-lg font-semibold">{info.nome}</h2>
+          <h2 id="fila-titulo" className="text-lg font-semibold">{info.nome}</h2>
           <p className="text-sm text-muted-foreground">{info.descricao}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {primeiro ? <>Agora quem trabalha primeiro é <strong className="text-foreground">{primeiro.nome.split(" (")[0]}</strong>.</> : "Nenhuma IA desta função está pronta: conecte uma chave abaixo."}
@@ -503,7 +503,7 @@ function CartaoCredencial({ cred, conectada, valores, chaves, destaque }: { cred
     >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-display font-semibold">{cred.nome}</h3>
+          <h3 className="font-semibold">{cred.nome}</h3>
           {destrava.length > 0 && (
             <p className="mt-0.5 text-xs text-muted-foreground">
               Libera {destrava.map((d) => `${d.cap.charAt(0).toLowerCase() + d.cap.slice(1)} (${d.itens.join(", ")})`).join("; ")}
@@ -598,7 +598,7 @@ function Historico({ execucoes }: { execucoes: ExecucaoView[] }) {
   return (
     <section className="rounded-2xl border bg-card">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b p-4">
-        <h2 className="font-display font-semibold">Últimas {execucoes.length} execuções</h2>
+        <h2 className="font-semibold">Últimas {execucoes.length} execuções</h2>
         <div className="flex gap-1 rounded-lg bg-muted p-1 text-sm">
           {([
             ["todas", "Todas"],

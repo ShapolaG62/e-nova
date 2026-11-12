@@ -73,7 +73,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
         <SideNav items={items} />
         <SideNavPinned items={items} />
         <div className="flex items-center gap-3 border-t border-sidebar-border px-4 py-3">
-          <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary/15 font-display text-sm font-semibold text-sidebar-primary">
+          <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e9edf3] font-display text-sm font-bold text-[#121a2b]">
             {user.name.trim().charAt(0).toUpperCase() || "?"}
           </span>
           <div className="min-w-0 flex-1">
@@ -94,7 +94,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Celular: barra do topo enxuta + abas embaixo */}
-      <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b bg-background/85 px-4 backdrop-blur-md md:hidden print:hidden">
+      <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b bg-background/85 [box-shadow:inset_0_-2px_0_var(--area)] px-4 backdrop-blur-md md:hidden print:hidden">
         <Link href="/painel" aria-label="Início">
           <Logo />
         </Link>

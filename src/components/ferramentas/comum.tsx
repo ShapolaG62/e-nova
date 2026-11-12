@@ -62,7 +62,7 @@ export function Painel({ titulo, descricao, children, className, acao }: { titul
     <section className={cn("grid min-w-0 gap-4 rounded-2xl border bg-card p-4 sm:p-5", className)}>
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="font-display text-lg font-semibold">{titulo}</h2>
+          <h2 className="text-lg font-semibold">{titulo}</h2>
           {descricao && <p className="mt-0.5 text-sm text-muted-foreground">{descricao}</p>}
         </div>
         {acao}

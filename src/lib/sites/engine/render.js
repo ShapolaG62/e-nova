@@ -11,10 +11,17 @@ import L5 from './layouts/oficio.js';
 import L6 from './layouts/patas.js';
 import L7 from './layouts/sabor.js';
 import L8 from './layouts/serena.js';
+import L9 from './layouts/vitrine.js';
+import L10 from './layouts/atelier.js';
+import L11 from './layouts/pulso.js';
+import L12 from './layouts/maison.js';
+import L13 from './layouts/noite.js';
+import L14 from './layouts/horizonte.js';
+import { FUNDOS_PALETAS, PALETAS, listaPaletas } from './paletas.js';
 
-const LAYOUTS = Object.fromEntries([L0, L1, L2, L3, L4, L5, L6, L7, L8].map((l) => [l.id, l]));
+const LAYOUTS = Object.fromEntries([L0, L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12, L13, L14].map((l) => [l.id, l]));
 const listaLayouts = () => Object.values(LAYOUTS).sort((a, b) => (a.ordem || 99) - (b.ordem || 99))
-  .map(({ id, nome, descricao, tema, setores }) => ({ id, nome, descricao, escuro: ['escuro', 'grafite', 'marca'].includes(tema), setores: setores || [] }));
+  .map(({ id, nome, descricao, tema, setores, fontes }) => ({ id, nome, descricao, escuro: ['escuro', 'grafite', 'marca', 'tech', 'galaxia', 'oceano'].includes(tema), setores: setores || [], fonte: fontes.titulo }));
 
 // ---------- cores ----------
 function hexRgb(h) {
@@ -38,6 +45,7 @@ const TEMAS = {
   escuro: { nome: 'Escuro', bg: '#0c0d10', bg2: '#14161b', tx: '#f4f4f5', tx2: '#a1a1aa', linha: 'rgba(255,255,255,.10)', card: '#17191f', escuro: true },
   grafite: { nome: 'Grafite', bg: '#1a1d23', bg2: '#22262e', tx: '#eef0f3', tx2: '#a7aeba', linha: 'rgba(255,255,255,.10)', card: '#262a33', escuro: true },
   marca: { nome: 'Cor da marca', bg: null, bg2: null, tx: '#ffffff', tx2: 'rgba(255,255,255,.75)', linha: 'rgba(255,255,255,.16)', card: null, escuro: true },
+  ...FUNDOS_PALETAS,
 };
 function misturar(h, alvo, t) {
   const a = hexRgb(h), b = hexRgb(alvo);
@@ -194,6 +202,7 @@ const CSS_BASE = `
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--tx);font-family:var(--fc);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+main{overflow-x:clip}
 img{display:block;max-width:100%}
 a{color:inherit}
 .wrap{width:min(var(--larg,1160px),100% - 40px);margin-inline:auto}
@@ -351,6 +360,39 @@ h1 em,h2 em{font-style:var(--em-estilo,normal);color:var(--em-cor,var(--p))}
 .anim .rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
 .anim .rv.on{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.anim .rv{opacity:1;transform:none}.faixa-trilho{animation:none}}
+/* ── visuais premium: foto de ponta a ponta no topo, entrada única, fotos que se revelam, zoom suave ── */
+.premium.anim .rv{opacity:1;transform:none;transition:none}
+.premium .topo--fundo{background:#16181c;min-height:100svh;align-items:flex-end;padding-bottom:clamp(3rem,9vh,7rem)}
+.premium .topo-fundo img{height:100%;transform:scale(1.08);transition:transform 1.8s cubic-bezier(.2,.7,.2,1)}
+.premium.pronto .topo-fundo img{transform:scale(1)}
+.premium .topo-fundo::after{background:var(--fundo-veu,linear-gradient(0deg,rgba(0,0,0,.8) 0%,rgba(0,0,0,.48) 50%,rgba(0,0,0,.3) 100%))}
+.premium .topo-txt>*{opacity:0;transform:translateY(28px);transition:opacity .9s ease,transform 1s cubic-bezier(.2,.7,.2,1)}
+.premium.pronto .topo-txt>*{opacity:1;transform:none}
+.premium .topo-txt>:nth-child(2){transition-delay:.12s}.premium .topo-txt>:nth-child(3){transition-delay:.24s}.premium .topo-txt>:nth-child(4){transition-delay:.36s}.premium .topo-txt>:nth-child(5){transition-delay:.48s}
+.premium .foto-rev{clip-path:inset(0 0 100% 0);transition:clip-path 1.2s cubic-bezier(.7,0,.2,1)}
+.premium .foto-rev.on{clip-path:inset(0 0 0 0)}
+.premium .galeria img,.premium .serv-foto img,.premium .hist-media img{transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+.premium .galeria figure:hover img,.premium .serv:hover .serv-foto img,.premium .hist-media:hover img{transform:scale(1.03)}
+.premium .btn{transition:transform .15s,background .2s,box-shadow .2s}
+.premium .btn:hover{transform:translateY(-2px)}.premium .btn:active{transform:translateY(1px) scale(.98)}
+@media (min-width:900px){.premium .grade-serv{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}}
+/* menu transparente por cima da foto do topo; fica sólido ao rolar */
+.premium:has(.topo--fundo) .nav{position:fixed;left:0;right:0;background:transparent;border-color:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;transition:background .3s,border-color .3s}
+.premium:has(.topo--fundo):not(.rolou) .nav:not(.aberta) :is(.marca,.nav-links a,.nav-tog){color:#fff}
+.premium:has(.topo--fundo):not(.rolou) .nav:not(.aberta) .nav-links a{opacity:.85}
+.premium.rolou .nav,.premium .nav.aberta{background:var(--nav-bg);border-color:var(--linha);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+/* galeria em composição: uma foto larga, depois pares e trios */
+.premium .galeria{grid-template-columns:repeat(6,1fr);gap:clamp(.5rem,1.2vw,1rem)}
+.premium .galeria figure{grid-column:span 2;border-radius:var(--raio-img,0)}
+.premium .galeria img{aspect-ratio:4/5}
+.premium .galeria figure:nth-child(1){grid-column:1/-1}.premium .galeria figure:nth-child(1) img{aspect-ratio:21/9}
+.premium .galeria figure:nth-child(2),.premium .galeria figure:nth-child(3){grid-column:span 3}.premium .galeria figure:nth-child(2) img,.premium .galeria figure:nth-child(3) img{aspect-ratio:4/3}
+.premium .galeria figure:nth-child(7),.premium .galeria figure:nth-child(8){grid-column:span 3}.premium .galeria figure:nth-child(7) img,.premium .galeria figure:nth-child(8) img{aspect-ratio:3/2}
+.premium .galeria.g2 figure:nth-child(2){grid-column:1/-1}
+.premium .galeria.g5 figure:first-child{grid-row:auto}.premium .galeria.g3 figure:first-child{grid-row:auto}
+.premium .galeria.g3 figure:first-child img,.premium .galeria.g5 figure:first-child img{aspect-ratio:21/9}
+@media (max-width:600px){.premium .galeria{grid-template-columns:repeat(2,1fr)}.premium .galeria figure,.premium .galeria figure:nth-child(n){grid-column:span 1}.premium .galeria figure:nth-child(3n+1){grid-column:1/-1}.premium .galeria figure:nth-child(3n+1) img{aspect-ratio:16/10}.premium .galeria figure img{aspect-ratio:4/5}}
+@media (prefers-reduced-motion:reduce){.premium .topo-txt>*,.premium .topo-fundo img{opacity:1;transform:none;transition:none}.premium .foto-rev{clip-path:none}}
 /* editor */
 .vazio-ed{outline:2px dashed var(--linha)}.aviso-ed{color:var(--tx2)}
 .ed [data-bloco]{cursor:pointer;transition:outline-color .15s}
@@ -389,6 +431,16 @@ if(b.dataset.anim==='1'&&'IntersectionObserver' in window){
   var io2=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;io2.unobserve(e.target);var el=e.target,txt=el.dataset.contar,m=txt.match(/^(\\D*)([\\d.,]+)(.*)$/);if(!m)return;var dec=(m[2].split(',')[1]||'').length,alvo=parseFloat(m[2].replace(/\\./g,'').replace(',','.')),t0=null;function f(t){t0=t0||t;var k=Math.min(1,(t-t0)/1400);k=1-Math.pow(1-k,3);el.textContent=m[1]+(alvo*k).toFixed(dec).replace('.',',')+m[3];if(k<1)requestAnimationFrame(f)}requestAnimationFrame(f)})});
   d.querySelectorAll('b[data-contar]').forEach(function(el){io2.observe(el)});
 }
+if(b.classList.contains('premium')){
+  requestAnimationFrame(function(){requestAnimationFrame(function(){b.classList.add('pronto')})});
+  var rolar=function(){b.classList.toggle('rolou',scrollY>40)};rolar();addEventListener('scroll',rolar,{passive:true});
+  var fotosRev=d.querySelectorAll('.galeria figure,.hist-media,.serv-foto');
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    var pend=[].slice.call(fotosRev);pend.forEach(function(el){el.classList.add('foto-rev')});
+    var checar=function(){pend=pend.filter(function(el){if(el.getBoundingClientRect().top<innerHeight*.88){el.classList.add('on');return false}return true})};
+    var agendado=0;addEventListener('scroll',function(){if(!agendado){agendado=1;requestAnimationFrame(function(){agendado=0;checar()})}},{passive:true});addEventListener('resize',checar);setTimeout(checar,60);
+  }
+}
 var pr=d.querySelector('.progresso'),px=b.dataset.parallax==='1'?d.querySelector('.topo-fundo img,.topo-media img'):null;
 window.addEventListener('scroll',function(){var h=d.documentElement,y=h.scrollTop;if(pr)pr.style.width=(y/(h.scrollHeight-h.clientHeight)*100)+'%';if(px&&y<1200)px.style.transform='translateY('+(y*.18)+'px)'},{passive:true});
 })();`;
@@ -424,7 +476,9 @@ function render(doc, opts = {}) {
   const topo = visiveis.find((b) => b.tipo === 'topo')?.dados || {};
   const links = [['servicos', 'Serviços'], ['sobre', 'Sobre'], ['depoimentos', 'Depoimentos'], ['contato', 'Contato']]
     .filter(([id]) => visiveis.some((b) => ({ servicos: 'servicos', sobre: 'historia', depoimentos: 'depoimentos', contato: 'contato' })[id] === b.tipo));
-  const f = L.fontes;
+  // a paleta escolhida pode trocar as fontes do visual
+  const pal = doc.paleta ? PALETAS.find((p) => p.id === doc.paleta) : null;
+  const f = pal ? { ...L.fontes, ...pal.fontes } : L.fontes;
   const fontUrl = `https://fonts.googleapis.com/css2?${[...new Set([f.titulo, f.corpo])].map((fam) => `family=${fam.replace(/ /g, '+')}:${f.eixos?.[fam] || 'wght@400;500;600;700;800'}`).join('&')}&display=swap`;
   const vars = `:root{--p:${cores.primaria};--s:${cores.secundaria};--on-p:${sobre(cores.primaria)};--on-s:${sobre(cores.secundaria)};--p-suave:${rgba(cores.primaria, T.escuro ? 0.18 : 0.1)};
 --bg:${T.bg};--bg2:${T.bg2};--tx:${T.tx};--tx2:${T.tx2};--linha:${T.linha};--linha-forte:${T.escuro ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.22)'};--card:${T.card};
@@ -447,7 +501,7 @@ ${capa ? `<meta property="og:image" content="${esc(midia(capa))}">` : ''}
 <script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: n.nome, address: n.endereco, telephone: n.telefone, ...(n.nota ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: n.nota, reviewCount: n.avaliacoes } } : {}) }).replace(/</g, '\\u003c')}</script>
 <style>${vars}${CSS_BASE}${L.css}</style>
 </head>
-<body class="lay-${L.id} tema-${nomeTema}${anim.entrada !== false ? ' anim' : ''}" data-anim="${anim.contadores !== false ? 1 : 0}" data-parallax="${anim.parallax ? 1 : 0}">
+<body class="lay-${L.id} tema-${nomeTema}${anim.entrada !== false ? ' anim' : ''}${L.premium ? ' premium' : ''}" data-anim="${anim.contadores !== false ? 1 : 0}" data-parallax="${anim.parallax ? 1 : 0}">
 ${anim.progresso !== false ? '<div class="progresso"></div>' : ''}
 <header class="nav"><div class="wrap">
   <a class="marca" href="#inicio">${esc(n.nome)}</a>
@@ -468,4 +522,4 @@ ${opts.beacon ? `<script>try{navigator.sendBeacon?navigator.sendBeacon(${JSON.st
 }
 
 const TEMAS_NOMES = Object.fromEntries(Object.entries(TEMAS).map(([k, v]) => [k, v.nome]));
-export { render, listaLayouts, LAYOUTS, TEMAS_NOMES as TEMAS };
+export { render, listaLayouts, listaPaletas, LAYOUTS, TEMAS_NOMES as TEMAS };

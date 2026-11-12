@@ -100,7 +100,7 @@ export function Panel({ title, action, children, className }: { title: React.Rea
   return (
     <section className={cn("rounded-2xl border bg-card p-4 shadow-xs sm:p-5", className)}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-[1.05rem] leading-snug font-semibold">{title}</h2>
+        <h2 className="text-[1.05rem] leading-snug font-semibold">{title}</h2>
         {action}
       </div>
       {children}

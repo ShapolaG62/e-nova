@@ -7,7 +7,7 @@ import { safeFetch } from "@/lib/net-safety";
 import { googlePlacesKey, vendasConfig, baseSites } from "./config";
 import {
   montarDocumento, renderSite, setor as pegarSetor, detectarSetor, LAYOUT_IDS, zipArquivos, slugSite,
-  mensagemEnvio, notaOportunidade, type SiteDoc, type LeadBusca,
+  mensagemEnvio, notaOportunidade, negocioNoGoogle, type SiteDoc, type LeadBusca,
 } from "./engine";
 import { reescreverSite, abordagem as gerarAbordagem } from "./ai";
 
@@ -94,11 +94,11 @@ export async function baixarImagemUrl(url: string, siteId: string) {
   return salvarImagem(siteId, Buffer.from(await r.arrayBuffer()), tipo.includes("png") ? "png" : tipo.includes("webp") ? "webp" : "jpg");
 }
 
-async function baixarFotosGoogle(refs: string[], siteId: string, max = 8) {
+async function baixarFotosGoogle(refs: string[], siteId: string, max = 8, prefixo = "g") {
   const r = await Promise.all(refs.slice(0, max).map(async (nome, i) => {
     try {
       const buf = await fotoPlaces(nome, 1600);
-      const arq = `g${i + 1}.jpg`;
+      const arq = `${prefixo}${i + 1}.jpg`;
       await putObject(`sites/${siteId}/${arq}`, buf, "image/jpeg");
       return urlImagem(siteId, arq);
     } catch { return null; }
@@ -112,6 +112,25 @@ export type CriarSiteInput = {
   fotosUrls?: string[]; layout?: string; comIA?: boolean; nome?: string;
 };
 
+/**
+ * Site premium precisa de fotos: 10+ por página (topo, história, galeria) e uma por serviço.
+ * Primeiro valem as fotos do próprio negócio (Google e as coladas); o que faltar vem do Pixabay
+ * (fotos livres do ramo), baixado para o nosso armazenamento — o site nunca aponta para fora.
+ */
+async function fotosDoRamo(termo: string, siteId: string, quantas: number, usadas: Set<string>): Promise<string[]> {
+  if (quantas <= 0) return [];
+  const { chavePixabay, buscarPixabay } = await import("@/lib/ferramentas/pixabay");
+  const chave = await chavePixabay();
+  if (!chave) return [];
+  try {
+    const { itens } = await buscarPixabay(chave, { termo, tipo: "foto", pagina: 1, porPagina: Math.min(40, quantas * 3), orientacao: "horizontal", idioma: "pt" });
+    const novas = itens.filter((i) => i.url && !usadas.has(i.id) && i.largura >= 1200).slice(0, quantas);
+    novas.forEach((i) => usadas.add(i.id));
+    const salvas = await Promise.all(novas.map((i) => baixarImagemUrl(i.url, siteId).catch(() => null)));
+    return salvas.filter((x): x is string => !!x);
+  } catch { return []; }
+}
+
 export async function criarSite(inp: CriarSiteInput, userId: string): Promise<GeneratedSite> {
   const setorId = inp.setor || inp.lead.setor || detectarSetor(inp.lead);
   const st = pegarSetor(setorId);
@@ -124,7 +143,16 @@ export async function criarSite(inp: CriarSiteInput, userId: string): Promise<Ge
   ]);
   const ids = LAYOUT_IDS();
   const layout = inp.layout && ids.includes(inp.layout) ? inp.layout : st.visuais.find((v) => ids.includes(v)) ?? ids[0];
-  let doc = montarDocumento({ ...inp.lead, nome: inp.nome || inp.lead.nome, setor: setorId }, { setor: setorId, servicos: inp.servicos, cores: inp.cores, tom: inp.tom, fotos: [...coladas, ...fotosGoogle], layout });
+  // completa até 10 fotos do ramo quando o negócio tem poucas
+  const usadas = new Set<string>();
+  const proprias = [...coladas, ...fotosGoogle];
+  const doRamo = await fotosDoRamo(st.busca || st.nome, siteId, 10 - proprias.length, usadas);
+  let doc = montarDocumento({ ...inp.lead, nome: inp.nome || inp.lead.nome, setor: setorId }, { setor: setorId, servicos: inp.servicos, cores: inp.cores, tom: inp.tom, fotos: [...proprias, ...doRamo], layout });
+  // uma foto por serviço, procurada pelo nome do serviço (só se a chave do Pixabay existir)
+  const blocoServ = doc.blocos.find((b) => b.tipo === "servicos");
+  const itensServ = (blocoServ?.dados.itens ?? []) as { titulo: string; foto?: string }[];
+  const fotosServ = await Promise.all(itensServ.slice(0, 8).map((it) => it.foto ? Promise.resolve([it.foto]) : fotosDoRamo(it.titulo, siteId, 1, usadas).then(async (a) => a.length ? a : fotosDoRamo(`${it.titulo} ${st.busca || st.nome}`, siteId, 1, usadas))));
+  itensServ.slice(0, 8).forEach((it, i) => { if (!it.foto && fotosServ[i][0]) it.foto = fotosServ[i][0]; });
   let aviso: string | null = null;
   if (inp.comIA) {
     try { doc = await reescreverSite(doc, userId); }
@@ -139,6 +167,86 @@ export async function criarSite(inp: CriarSiteInput, userId: string): Promise<Ge
 }
 
 /** "Gerar outro visual": percorre os visuais sugeridos do setor e depois os demais; dá para voltar. */
+// ───────── conferir um site com o Google Maps ─────────
+export type DiferencaGoogle = { campo: string; rotulo: string; site: string; google: string };
+export type ConferenciaGoogle = { encontrado: string; endereco: string; mapa: string; diferencas: DiferencaGoogle[]; fotosGoogle: number; fotosSite: number; avaliacoesTexto: number };
+
+async function acharNoGoogle(site: GeneratedSite) {
+  const chave = await googlePlacesKey();
+  if (!chave) throw Object.assign(new Error("sem chave"), { userMessage: "Cadastre a chave do Google Maps em Configurações de vendas para conferir." });
+  const doc = site.doc as unknown as SiteDoc;
+  const p = site.prospectId ? await db.query.prospects.findFirst({ where: eq(t.prospects.id, site.prospectId) }) : undefined;
+  const n = doc.negocio ?? {};
+  const lead = await negocioNoGoogle({ placeId: p?.placeId, nome: n.nome || site.name, cidade: n.cidade || p?.city || "", uf: n.uf || p?.uf || "", pais: p?.country || "BR", chave });
+  if (!lead) throw Object.assign(new Error("não achou"), { userMessage: "Não encontrei esse negócio no Google Maps. Confira o nome e a cidade no editor." });
+  return { doc, prospect: p, lead };
+}
+
+const txt = (v: unknown) => (Array.isArray(v) ? v.join(" · ") : v == null ? "" : String(v)).trim();
+
+/** Compara o que está no site com o que está hoje no Google Maps (não muda nada). */
+export async function conferirNoGoogle(site: GeneratedSite): Promise<ConferenciaGoogle> {
+  const { doc, lead } = await acharNoGoogle(site);
+  const n = doc.negocio ?? {};
+  const campos: [string, string, unknown, unknown][] = [
+    ["nome", "Nome", n.nome, lead.nome],
+    ["endereco", "Endereço", n.endereco, lead.endereco],
+    ["telefone", "Telefone", n.telefone, lead.telefone],
+    ["whatsapp", "WhatsApp", n.whatsapp, lead.whatsapp],
+    ["horarios", "Horários", n.horarios, lead.horarios],
+    ["nota", "Nota no Google", n.nota, lead.nota],
+    ["avaliacoes", "Nº de avaliações", n.avaliacoes, lead.avaliacoes],
+    ["instagram", "Instagram", n.instagram, lead.instagram],
+  ];
+  const diferencas = campos
+    .filter(([, , a, b]) => txt(b) && txt(a) !== txt(b))
+    .map(([campo, rotulo, a, b]) => ({ campo, rotulo, site: txt(a) || "(vazio)", google: txt(b) }));
+  return {
+    encontrado: lead.nome, endereco: lead.endereco, mapa: lead.mapa || "",
+    diferencas, fotosGoogle: lead.fotos?.length ?? 0, fotosSite: doc.fotos?.lista?.length ?? 0, avaliacoesTexto: lead.reviews?.length ?? 0,
+  };
+}
+
+/** Troca os dados, as fotos e/ou os depoimentos do site pelos que estão no Google Maps. */
+export async function aplicarDoGoogle(site: GeneratedSite, o: { dados: boolean; fotos: boolean; depoimentos: boolean }) {
+  const { doc, prospect, lead } = await acharNoGoogle(site);
+  const novo: SiteDoc = structuredClone(doc);
+  const feito: string[] = [];
+  if (o.dados) {
+    const n = novo.negocio;
+    for (const k of ["nome", "endereco", "telefone", "whatsapp", "instagram", "mapa", "cidade", "uf", "bairro"] as const) if (txt(lead[k])) n[k] = lead[k];
+    if (lead.horarios?.length) n.horarios = lead.horarios;
+    if (lead.nota) { n.nota = lead.nota; n.avaliacoes = lead.avaliacoes; }
+    if (lead.lat != null) { n.lat = lead.lat; n.lng = lead.lng; }
+    feito.push("dados");
+  }
+  if (o.fotos && lead.fotos?.length) {
+    const novas = await baixarFotosGoogle(lead.fotos, site.id, 10, "g" + Date.now().toString(36) + "-");
+    if (novas.length) {
+      // as fotos do Google vêm primeiro (a primeira vira a capa); as antigas completam até 10
+      const lista = [...novas, ...(novo.fotos?.lista ?? []).filter((u) => !novas.includes(u))].slice(0, Math.max(10, novas.length));
+      novo.fotos = { capa: novas[0], lista };
+      for (const b of novo.blocos) if (b.tipo === "galeria" && Array.isArray(b.dados.fotos)) b.dados.fotos = [];
+      feito.push(novas.length + " fotos");
+    }
+  }
+  if (o.depoimentos && lead.reviews?.length) {
+    const dep = novo.blocos.find((b) => b.tipo === "depoimentos");
+    if (dep) { dep.dados.itens = lead.reviews.slice(0, 3).map((r: any) => ({ nome: r.nome, texto: r.texto, nota: r.nota || 5 })); feito.push("depoimentos"); }
+  }
+  await db.update(t.generatedSites).set({ doc: novo as any, name: String(novo.negocio?.nome || site.name).slice(0, 200) }).where(eq(t.generatedSites.id, site.id));
+  if (prospect) {
+    await db.update(t.prospects).set({
+      placeId: lead.placeId || prospect.placeId, phone: lead.telefone || prospect.phone, whatsapp: lead.whatsapp || prospect.whatsapp,
+      address: lead.endereco || prospect.address, hours: lead.horarios?.length ? lead.horarios : prospect.hours, rating: lead.nota ?? prospect.rating,
+      reviewsCount: lead.avaliacoes || prospect.reviewsCount, photoRefs: lead.fotos?.length ? lead.fotos : prospect.photoRefs,
+      googleReviews: lead.reviews?.length ? lead.reviews : prospect.googleReviews, mapsUrl: lead.mapa || prospect.mapsUrl,
+    }).where(eq(t.prospects.id, prospect.id));
+    await addHistorico(prospect.id, "site", "Site conferido com o Google Maps: " + (feito.join(", ") || "nada mudou"));
+  }
+  return feito;
+}
+
 export async function outroVisual(site: GeneratedSite, direcao: 1 | -1) {
   const ids = LAYOUT_IDS();
   const ordem = [...new Set([...pegarSetor(site.sector).visuais, ...ids])].filter((v) => ids.includes(v));

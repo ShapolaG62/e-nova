@@ -120,10 +120,12 @@ export class SemProvedor extends Error {
  * Executa uma função de IA com revezamento automático:
  * tenta a melhor IA configurada; se falhar (erro, limite, fora do ar), passa para a próxima.
  */
-export async function executar(cap: Capacidade, entrada: EntradaIA, opts: { preferir?: string; timeoutMs?: number; userId?: string | null; progresso?: (pct: number, etapa?: string) => void | Promise<void>; somente?: string[]; validar?: (s: SaidaIA) => void } = {}): Promise<SaidaIA & { usado: Tentativa; tentativas: Tentativa[] }> {
+export async function executar(cap: Capacidade, entrada: EntradaIA, opts: { preferir?: string; timeoutMs?: number; userId?: string | null; progresso?: (pct: number, etapa?: string) => void | Promise<void>; somente?: string[]; evitar?: string[]; validar?: (s: SaidaIA) => void } = {}): Promise<SaidaIA & { usado: Tentativa; tentativas: Tentativa[] }> {
   // convenção da tela: no Avatar, "template" é o id do avatar
   if (cap === "avatar" && entrada.template && !entrada.dados?.avatar) entrada = { ...entrada, dados: { ...(entrada.dados ?? {}), avatar: entrada.template } };
   const lista = (await candidatos(cap, opts)).filter((c) => c.temChave && (!opts.somente || opts.somente.includes(c.item.id)));
+  // evitar = passar a vez para OUTRA IA (ex.: a revisora não pode ser a mesma que escreveu); se só sobrar ela, usa ela
+  if (opts.evitar?.length && lista.some((c) => !opts.evitar!.includes(c.item.id))) lista.splice(0, lista.length, ...lista.filter((c) => !opts.evitar!.includes(c.item.id)));
   const tentativas: Tentativa[] = [];
   // quem está de castigo vai para o fim (ainda pode salvar se todo o resto falhar)
   const ordem = [...lista.filter((c) => !c.emCastigo), ...lista.filter((c) => c.emCastigo)];

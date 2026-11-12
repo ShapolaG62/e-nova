@@ -125,6 +125,37 @@ async function buscar({ termo, cidade, uf, pais = 'BR', quantidade = 10, chave, 
   return { leads: achados, analisadas, comSite, semSite: achados.filter((l) => l.situacaoSite !== 'tem').length, demo: false };
 }
 
+// ---------- Um negócio só (para conferir um site já criado) ----------
+const CAMPOS_UM = CAMPOS.split(',').filter((c) => c.startsWith('places.')).map((c) => c.slice(7)).join(',');
+async function erroGoogle(r, d) {
+  const erro = new Error('Google: ' + (d.error?.message || r.status));
+  erro.googleStatus = r.status;
+  erro.googleCorpo = d;
+  return erro;
+}
+/** Pelo id do lugar (mais certeiro) ou, sem id, pelo nome + cidade (pega o primeiro resultado). */
+async function umNegocio({ placeId, nome, cidade, uf, pais = 'BR', chave }) {
+  const info = PAISES[pais] || PAISES.BR;
+  if (placeId) {
+    const r = await fetch('https://places.googleapis.com/v1/places/' + encodeURIComponent(placeId) + '?languageCode=' + info.idioma, {
+      headers: { 'X-Goog-Api-Key': chave, 'X-Goog-FieldMask': CAMPOS_UM },
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) return extrair(d, pais);
+    if (r.status !== 404) throw await erroGoogle(r, d);
+  }
+  const local = [cidade, uf, info.nome].filter(Boolean).join(', ');
+  const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': chave, 'X-Goog-FieldMask': CAMPOS },
+    body: JSON.stringify({ textQuery: nome + (local ? ' em ' + local : ''), languageCode: info.idioma, regionCode: pais, pageSize: 5 }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw await erroGoogle(r, d);
+  const p = (d.places || [])[0];
+  return p ? extrair(p, pais) : null;
+}
+
 // ---------- Modo demonstração (sem chave) ----------
 const SUF = ['do Zé', 'Central', 'Bela Vista', 'Primavera', 'Prime', 'da Vila', 'Real', 'Express', 'Premium', 'Família', 'Nova Era', 'Point'];
 const RUAS = ['Rua das Flores', 'Av. Brasil', 'Rua XV de Novembro', 'Rua São Paulo', 'Av. Getúlio Vargas', 'Rua Sete de Setembro'];
@@ -164,4 +195,4 @@ function demo({ termo, cidade, uf, pais, quantidade }) {
   return { leads, analisadas: quantidade * 2, comSite: quantidade, semSite: quantidade, demo: true };
 }
 
-export { buscar, notaOportunidade, PAISES };
+export { buscar, umNegocio, notaOportunidade, PAISES };

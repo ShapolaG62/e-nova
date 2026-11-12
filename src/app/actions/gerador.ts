@@ -36,24 +36,125 @@ const briefSchema = z.object({
   legendas: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
   musica: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
   clientId: z.union([uuid, z.literal("")]).optional(),
+  // história com personagem, estética e fotos
+  personagem: z.string().trim().max(600).optional(),
+  estetica: z.string().trim().max(30).optional(),
+  fotoPersonagem: z.string().trim().max(200).optional(),
+  fotosAnimar: z.string().trim().max(4000).optional(), // JSON com as chaves enviadas
+  semRevisao: z.preprocess((v) => v === "on" || v === "true", z.boolean()).optional(),
 });
+
+/** Chave de foto enviada por esta pessoa (envios ficam em gerador/envios/<usuário>/…). */
+const ehEnvio = (k: unknown, userId: string): k is string => typeof k === "string" && new RegExp(`^gerador/envios/${userId}/[\\w-]{8,60}\\.jpg$`).test(k);
+
+/** Copia as fotos enviadas para a pasta do projeto (assim a tela do vídeo consegue mostrá-las). */
+async function moverEnvios(projetoId: string, chaves: string[], nome: (i: number) => string) {
+  const { getObjectBuffer, putObject } = await import("@/lib/storage");
+  const out: string[] = [];
+  for (const [i, k] of chaves.entries()) {
+    const nova = `gerador/${projetoId}/${nome(i)}.jpg`;
+    await putObject(nova, await getObjectBuffer(k), "image/jpeg");
+    out.push(nova);
+  }
+  return out;
+}
 
 export async function criarVideoAction(_: ActionState, form: FormData): Promise<ActionState> {
   const me = await requirePermission("ai:use");
   const p = briefSchema.safeParse(Object.fromEntries(form));
   if (!p.success) return zodErrors(p.error);
   if (!(await rateLimit(`gerador:${me.id}`, 20, 3600))) return { ok: false, message: "Muitos vídeos em pouco tempo. Espere alguns minutos." };
-  const { clientId, ...brief } = p.data;
+  const { clientId, fotosAnimar: fotosJson, fotoPersonagem, semRevisao, personagem, estetica, ...brief } = p.data;
   // a animação desenhada é sempre vertical e não usa IA de imagem
   if (brief.estilo === "animacao") { brief.proporcao = "9:16"; brief.visual = "imagem"; brief.musica = false; }
+  let fotos: string[] = [];
+  try { fotos = (JSON.parse(fotosJson || "[]") as unknown[]).filter((k): k is string => ehEnvio(k, me.id)).slice(0, 12); } catch { fotos = []; }
+  const fotoP = ehEnvio(fotoPersonagem, me.id) ? fotoPersonagem : undefined;
+  const { ESTETICAS } = await import("@/lib/gerador/estetica");
   const [row] = await db.insert(t.videoProjetos).values({
-    titulo: brief.tema.slice(0, 120), brief: { ...brief, publico: brief.publico || undefined, tom: brief.tom || undefined, estiloVisual: brief.estiloVisual || undefined, voz: brief.voz || undefined, cta: brief.cta || undefined },
+    titulo: brief.tema.slice(0, 120),
+    brief: {
+      ...brief, publico: brief.publico || undefined, tom: brief.tom || undefined, estiloVisual: brief.estiloVisual || undefined, voz: brief.voz || undefined, cta: brief.cta || undefined,
+      personagem: personagem || undefined, estetica: ESTETICAS.some((e) => e.id === estetica) ? estetica : undefined, revisar: !semRevisao,
+    },
     clientId: clientId || null, userId: me.id, etapa: "Na fila do diretor…",
   }).returning({ id: t.videoProjetos.id });
+  if (fotos.length || fotoP) {
+    const [fotosNovas, [pers]] = await Promise.all([
+      moverEnvios(row.id, brief.estilo === "animacao" ? [] : fotos, (i) => `foto-${i + 1}`),
+      moverEnvios(row.id, fotoP ? [fotoP] : [], () => "personagem"),
+    ]);
+    const atual = await db.query.videoProjetos.findFirst({ where: eq(t.videoProjetos.id, row.id) });
+    await db.update(t.videoProjetos).set({ brief: { ...atual!.brief, ...(fotosNovas.length ? { fotosAnimar: fotosNovas } : {}), ...(pers ? { fotoPersonagem: pers } : {}) } }).where(eq(t.videoProjetos.id, row.id));
+  }
   await enfileirarRoteiro(row.id);
   await audit(me, "gerador.criar", { entity: "video_projeto", entityId: row.id });
   revalidatePath("/painel/gerador");
   redirect(`/painel/gerador/${row.id}`);
+}
+
+/** Recebe uma foto (já reduzida no navegador), padroniza em JPG de até 1600 px e devolve a chave. */
+export async function enviarFotoGeradorAction(dataUrl: string): Promise<{ ok: true; chave: string } | { ok: false; message: string }> {
+  const me = await requirePermission("ai:use");
+  const m = /^data:image\/(png|jpe?g|webp);base64,(.+)$/.exec(dataUrl || "");
+  if (!m) return { ok: false, message: "Use uma foto JPG, PNG ou WebP." };
+  if (!(await rateLimit(`gerador-foto:${me.id}`, 80, 3600))) return { ok: false, message: "Muitas fotos em pouco tempo. Espere alguns minutos." };
+  try {
+    const sharp = (await import("sharp")).default;
+    const buf = await sharp(Buffer.from(m[2], "base64")).rotate().resize(1600, 1600, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 86 }).toBuffer();
+    const { randomUUID } = await import("node:crypto");
+    const { putObject } = await import("@/lib/storage");
+    const chave = `gerador/envios/${me.id}/${randomUUID()}.jpg`;
+    await putObject(chave, buf, "image/jpeg");
+    return { ok: true, chave };
+  } catch { return { ok: false, message: "Não consegui ler essa foto. Tente outra." }; }
+}
+
+// ───────── Padrões salvos (memória de um vídeo para gerar outro com 1 botão) ─────────
+const comPadraoSchema = z.object({
+  padraoId: uuid,
+  tema: z.string().trim().min(8, "Conte a nova história em uma frase.").max(2000),
+  mesmoPersonagem: z.preprocess((v) => v !== "nao", z.boolean()),
+  personagem: z.string().trim().max(600).optional(),
+});
+
+export async function criarComPadraoAction(_: ActionState, form: FormData): Promise<ActionState> {
+  const me = await requirePermission("ai:use");
+  const p = comPadraoSchema.safeParse(Object.fromEntries(form));
+  if (!p.success) return zodErrors(p.error);
+  if (!(await rateLimit(`gerador:${me.id}`, 20, 3600))) return { ok: false, message: "Muitos vídeos em pouco tempo. Espere alguns minutos." };
+  const { pegarPadrao } = await import("@/lib/gerador/padroes");
+  const padrao = await pegarPadrao(p.data.padraoId);
+  if (!padrao) return { ok: false, message: "Esse padrão não existe mais." };
+  const brief = {
+    ...padrao.brief, tema: p.data.tema, padraoId: padrao.id, mesmoPersonagem: p.data.mesmoPersonagem,
+    // outro personagem: vale o que foi escrito agora; a foto antiga do personagem não vale mais
+    ...(p.data.mesmoPersonagem ? {} : { personagem: p.data.personagem || undefined, fotoPersonagem: undefined }),
+  };
+  const [row] = await db.insert(t.videoProjetos).values({ titulo: p.data.tema.slice(0, 120), brief, userId: me.id, etapa: "Na fila do diretor…" }).returning({ id: t.videoProjetos.id });
+  await enfileirarRoteiro(row.id);
+  await audit(me, "gerador.criar", { entity: "video_projeto", entityId: row.id, meta: { padrao: padrao.id } });
+  revalidatePath("/painel/gerador");
+  redirect(`/painel/gerador/${row.id}`);
+}
+
+export async function renomearPadraoAction(id: string, nome: string): Promise<ActionState> {
+  await requirePermission("ai:use");
+  if (!uuid.safeParse(id).success || !nome.trim()) return { ok: false, message: "Nome inválido." };
+  const { renomearPadrao } = await import("@/lib/gerador/padroes");
+  if (!(await renomearPadrao(id, nome.trim()))) return { ok: false, message: "Padrão não encontrado." };
+  revalidatePath("/painel/gerador");
+  return { ok: true, message: "Nome salvo." };
+}
+
+export async function excluirPadraoAction(id: string): Promise<ActionState> {
+  const me = await requirePermission("ai:use");
+  if (!uuid.safeParse(id).success) return { ok: false, message: "Inválido." };
+  const { excluirPadrao } = await import("@/lib/gerador/padroes");
+  await excluirPadrao(id);
+  await audit(me, "gerador.padrao.excluir", { entity: "video_padrao", entityId: id });
+  revalidatePath("/painel/gerador");
+  return { ok: true, message: "Padrão apagado." };
 }
 
 async function projetoDoUsuario(id: string) {

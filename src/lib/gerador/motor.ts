@@ -11,7 +11,9 @@ import { getObjectBuffer, putObject } from "@/lib/storage";
 import { argsVideo, ffmpeg, probe } from "@/lib/clips/ffmpeg";
 import { executar, SemProvedor } from "@/lib/ia-hub/roteador";
 import type { SaidaIA } from "@/lib/ia-hub/tipos";
-import { escreverRoteiro, promptDaCena } from "./diretor";
+import { escreverRoteiro, promptDaCena, type ExtrasRoteiro } from "./diretor";
+import { conferirPersonagem, descreverFoto } from "./visao";
+import { padraoDoProjeto, pegarPadrao } from "./padroes";
 import { DIMENSOES } from "./formatos";
 import { quemFaz } from "./quem";
 import { vozDaBiblioteca } from "./vozes";
@@ -43,17 +45,41 @@ export async function roteirizar(id: string) {
   const p = await carregar(id);
   await atualizar(id, { status: "ROTEIRIZANDO", progresso: 10, etapa: "O diretor está escrevendo o roteiro…", erro: null });
   try {
+    const extras = await prepararExtras(p, (etapa) => atualizar(id, { etapa, progresso: 15 }));
     const roteiro = await escreverRoteiro(p.brief, {
       userId: p.userId,
+      extras,
       progresso: async (_pct, etapa) => { if (etapa) await atualizar(id, { etapa: `O diretor está escrevendo o roteiro — ${etapa.replace(/…$/, "")}…`, progresso: 30 }); },
     });
     await atualizar(id, {
-      status: "ROTEIRO_PRONTO", progresso: 100, etapa: `Roteiro escrito por ${roteiro.usado ?? "IA"}`, roteiro, titulo: roteiro.titulo.slice(0, 200),
+      status: "ROTEIRO_PRONTO", progresso: 100, etapa: (roteiro.cadeia?.join(", ") ?? `Roteiro escrito por ${roteiro.usado ?? "IA"}`).slice(0, 200), roteiro, titulo: roteiro.titulo.slice(0, 200),
       cenas: roteiro.cenas.map((c) => ({ id: c.id, status: "PENDENTE" })),
     });
   } catch (e) {
     await atualizar(id, { status: "FALHOU", etapa: "Não consegui escrever o roteiro", erro: msg(e).slice(0, 2000) });
   }
+}
+
+const mimeDaChave = (k: string) => (/\.png$/i.test(k) ? "image/png" : /\.webp$/i.test(k) ? "image/webp" : "image/jpeg");
+
+/** Corrente de IAs, primeiro elo: a IA que enxerga descreve a foto do personagem e as fotos para animar. */
+async function prepararExtras(p: VideoProjeto, avisar: (etapa: string) => Promise<void>): Promise<ExtrasRoteiro> {
+  const b = p.brief;
+  const extras: ExtrasRoteiro = {};
+  if (b.padraoId) extras.padrao = await pegarPadrao(b.padraoId);
+  if (b.fotoPersonagem && !(extras.padrao && b.mesmoPersonagem !== false)) {
+    await avisar("Uma IA que enxerga imagens está olhando a foto do personagem…");
+    extras.personagemFoto = await descreverFoto(await getObjectBuffer(b.fotoPersonagem), mimeDaChave(b.fotoPersonagem), "personagem", p.userId).catch(() => null);
+  }
+  if (b.fotosAnimar?.length) {
+    extras.fotos = [];
+    for (const [i, chave] of b.fotosAnimar.slice(0, 12).entries()) {
+      await avisar(`Uma IA que enxerga imagens está olhando a foto ${i + 1} de ${Math.min(12, b.fotosAnimar.length)}…`);
+      const d = await descreverFoto(await getObjectBuffer(chave), mimeDaChave(chave), "cena", p.userId).catch(() => null);
+      extras.fotos.push({ chave, descricao: d ?? `photo ${i + 1} sent by the client` });
+    }
+  }
+  return extras;
 }
 
 // ───────── 2. Cenas ─────────
@@ -88,6 +114,13 @@ async function comPaciencia<T>(fn: () => Promise<T>, avisar: (etapa: string) => 
   }
 }
 
+/** Descrição fixa do personagem que aparece nesta cena (para a conferência), ou null. */
+function personagemDaCena(roteiro: VideoRoteiro, prompt: string) {
+  const ps = roteiro.personagens ?? [];
+  const citados = ps.filter((x) => x.nome && prompt.toLowerCase().includes(x.nome.toLowerCase()));
+  return citados.length ? citados.map((x) => `${x.nome}: ${x.descricao}`).join(". ") : null;
+}
+
 const ehVozMicrosoft =(v?: string) => !!v && /^[a-z]{2}-[A-Z]{2}-\w+Neural$/.test(v);
 
 async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string, progresso: (etapa: string) => Promise<void>, usados: Set<string> = new Set()): Promise<VideoCenaProducao> {
@@ -102,8 +135,21 @@ async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string,
   let visual: { buffer: Buffer; mime: string } | null = null;
   const fonte = brief.fonteVisual ?? "ia";
 
+  // 0) foto enviada pelo cliente para animar
+  if (!animado && cena.visual.foto) {
+    const buf = await getObjectBuffer(cena.visual.foto);
+    const mime = mimeDaChave(cena.visual.foto);
+    if (cena.visual.tipo === "video") {
+      try {
+        await progresso(`Cena ${cenaId}: animando a foto com IA de vídeo…`);
+        const r = await executar("video", { prompt, proporcao: brief.proporcao, duracao: 5, imagemUrl: `data:${mime};base64,${buf.toString("base64")}` }, { userId: p.userId });
+        visual = await baixarSaida(r); out.usadoVisual = `foto do cliente animada por ${r.usado.item}`;
+      } catch { /* sem IA de vídeo: a foto ganha movimento de câmera na montagem */ }
+    }
+    if (!visual) { visual = { buffer: buf, mime }; out.usadoVisual = "foto do cliente"; }
+  }
   // 1) mídia escolhida à mão no editor (Banco de mídia)
-  if (!animado && cena.visual.escolhida) {
+  if (!animado && !visual && cena.visual.escolhida) {
     try {
       await progresso(`Cena ${cenaId}: usando a mídia escolhida…`);
       const m = await midiaEscolhida(cena.visual.escolhida);
@@ -142,6 +188,19 @@ async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string,
     );
     visual = await baixarSaida(r);
     out.usadoVisual = r.usado.item;
+    const ficha = personagemDaCena(roteiro, cena.visual.prompt);
+    if (ficha && brief.revisar !== false && visual.mime.startsWith("image/")) {
+      await progresso(`Cena ${cenaId}: conferindo se o personagem saiu igual…`);
+      const v = await conferirPersonagem(visual.buffer, visual.mime, ficha, p.userId);
+      if (!v.ok) {
+        await progresso(`Cena ${cenaId}: personagem diferente (${(v.motivo ?? "").slice(0, 60)}); desenhando de novo…`);
+        try {
+          const r2 = await comPaciencia(() => executar("imagem", { prompt: `${pedido} Keep the character exactly as described.` , proporcao: brief.proporcao }, { userId: p.userId }), (e) => progresso(`Cena ${cenaId}: ${e}`), 3);
+          visual = await baixarSaida(r2);
+          out.usadoVisual = `${r2.usado.item} (refeita após conferência)`;
+        } catch { /* fica a primeira */ }
+      }
+    }
   }
   if (visual) {
     out.visualMime = visual.mime;
@@ -441,6 +500,8 @@ export async function montar(id: string) {
       status: "PRONTO", progresso: 100, etapa: "Vídeo pronto", outputAssetId,
       resultado: { videoChave, capaChave: `gerador/${id}/capa.jpg`, folhaChave: `gerador/${id}/folha.jpg`, duracao: dur, musicaChave, revisao },
     });
+    // memória: o vídeo pronto vira um padrão (personagem, estética, formato, voz…) para gerar outro com 1 botão
+    await padraoDoProjeto(await carregar(id)).catch(() => null);
   } catch (e) {
     await atualizar(id, { status: "FALHOU", etapa: "A montagem falhou", erro: msg(e).slice(0, 2000) });
     throw e;
