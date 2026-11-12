@@ -982,3 +982,57 @@ export const vozes = pgTable(
   (t) => [index("vozes_user_idx").on(t.userId, t.createdAt)],
 );
 export type Voz = typeof vozes.$inferSelect;
+
+// ═══ Clipador: canais do YouTube vigiados (com autorização do dono) ═══════════
+/** Posição da marca d'água: centro em frações da tela (0..1), largura em fração da largura do vídeo. */
+export type MarcaPosicao = { x: number; y: number; largura: number; opacidade: number };
+export type MarcaConfig = { chave?: string; vertical: MarcaPosicao; horizontal: MarcaPosicao };
+
+export const canaisVigiados = pgTable(
+  "canais_vigiados",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nome: varchar("nome", { length: 200 }).notNull(),
+    plataforma: varchar("plataforma", { length: 12 }).notNull().default("youtube"), // youtube | tiktok | instagram
+    youtubeId: varchar("youtube_id", { length: 80 }).notNull(), // conta na origem: UC… (YouTube), @nome (TikTok) ou nome (Instagram)
+    url: text("url").notNull(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }), // contas que postam
+    destinos: jsonb("destinos").$type<("INSTAGRAM" | "TIKTOK" | "YOUTUBE")[]>().notNull().default([]),
+    tipos: varchar("tipos", { length: 10 }).notNull().default("vertical"), // formato: vertical (9:16) | horizontal (16:9) | ambos
+    legenda: varchar("legenda", { length: 10 }).notNull().default("ia"), // ia | original
+    creditar: boolean("creditar").notNull().default(true),
+    aprovacao: varchar("aprovacao", { length: 12 }).notNull().default("automatico"), // automatico | revisar
+    marca: jsonb("marca").$type<MarcaConfig>().notNull(),
+    autorizacao: jsonb("autorizacao").$type<{ texto: string; aceitoEm: string; userId: string }>().notNull(),
+    ativo: boolean("ativo").notNull().default(true),
+    verificadoEm: timestamp("verificado_em", { withTimezone: true }),
+    erro: text("erro"),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("canais_vigiados_origem_cliente").on(t.plataforma, t.youtubeId, t.clientId)],
+);
+
+export const videosVigiados = pgTable(
+  "videos_vigiados",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    canalId: uuid("canal_id").notNull().references(() => canaisVigiados.id, { onDelete: "cascade" }),
+    videoId: varchar("video_id", { length: 40 }).notNull(),
+    link: text("link"), // endereço do vídeo original (vai no crédito)
+    midiaUrl: text("midia_url"), // Instagram: arquivo do vídeo entregue pela API oficial
+    titulo: text("titulo").notNull(),
+    descricao: text("descricao").notNull().default(""),
+    ehShort: boolean("eh_short").notNull().default(false), // vídeo vertical (9:16)
+    publicadoEm: timestamp("publicado_em", { withTimezone: true }),
+    // NOVO | BAIXANDO | PRONTO | POSTANDO | POSTADO | FALHOU | IGNORADO
+    status: varchar("status", { length: 12 }).notNull().default("NOVO"),
+    etapa: text("etapa"),
+    erro: text("erro"),
+    postId: uuid("post_id").references(() => posts.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("videos_vigiados_canal_video").on(t.canalId, t.videoId), index("videos_vigiados_status").on(t.status, t.createdAt)],
+);
+export type CanalVigiado = typeof canaisVigiados.$inferSelect;
+export type VideoVigiado = typeof videosVigiados.$inferSelect;

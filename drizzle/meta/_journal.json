@@ -78,6 +78,27 @@
       "when": 1794367413642,
       "tag": "0010_minha_voz",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794449980262,
+      "tag": "0011_clipador",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794450934336,
+      "tag": "0012_clipador_plataformas",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794451038312,
+      "tag": "0013_clipador_indice",
+      "breakpoints": true
     }
   ]
 }
