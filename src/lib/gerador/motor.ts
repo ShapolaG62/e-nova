@@ -14,6 +14,7 @@ import type { SaidaIA } from "@/lib/ia-hub/tipos";
 import { escreverRoteiro, promptDaCena } from "./diretor";
 import { DIMENSOES } from "./formatos";
 import { quemFaz } from "./quem";
+import { vozDaBiblioteca } from "./vozes";
 import { midiaDoBanco, midiaEscolhida } from "./banco";
 import { renderAnimacao, type CenaRender } from "./animacao/render";
 import type { AnimCena } from "./animacao/tipos";
@@ -150,10 +151,14 @@ async function gerarCena(p: VideoProjeto, roteiro: VideoRoteiro, cenaId: string,
 
   // voz
   await progresso(`Cena ${cenaId}: gravando a narração…`);
+  // voz da biblioteca grátis: voz da Microsoft + velocidade e tom do preset
+  const bib = vozDaBiblioteca(brief.voz);
   const rv = await comPaciencia(
-    () => executar("voz", { prompt: cena.narracao, voz: brief.voz, idioma: "pt-BR" }, brief.voz?.startsWith("minha:")
-      ? { userId: p.userId, somente: ["minha-voz-cartesia", "minha-voz-local"], timeoutMs: 6 * 60_000 } // voz clonada: Cartesia, depois o computador
-      : { userId: p.userId, preferir: ehVozMicrosoft(brief.voz) ? "edge-tts" : undefined }),
+    () => bib
+      ? executar("voz", { prompt: cena.narracao, voz: bib.voz, idioma: "pt-BR", dados: { velocidade: bib.velocidade, tom: bib.tom } }, { userId: p.userId, somente: ["edge-tts"] })
+      : executar("voz", { prompt: cena.narracao, voz: brief.voz, idioma: "pt-BR" }, brief.voz?.startsWith("minha:")
+        ? { userId: p.userId, somente: ["minha-voz-cartesia", "minha-voz-local"], timeoutMs: 6 * 60_000 } // voz clonada: Cartesia, depois o computador
+        : { userId: p.userId, preferir: ehVozMicrosoft(brief.voz) ? "edge-tts" : undefined }),
     (e) => progresso(`Cena ${cenaId}: ${e}`),
   );
   const audio = await baixarSaida(rv);

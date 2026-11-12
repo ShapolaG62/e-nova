@@ -136,7 +136,6 @@ export const VOZES_EDGE = [
   { id: "pt-BR-FranciscaNeural", nome: "Francisca (feminina)" },
   { id: "pt-BR-ThalitaMultilingualNeural", nome: "Thalita (feminina, expressiva)" },
   { id: "pt-BR-AntonioNeural", nome: "Antônio (masculina)" },
-  { id: "pt-BR-MacerioMultilingualNeural", nome: "Macério (masculina, expressiva)" },
 ];
 
 function partes(texto: string, max = 1800) {
@@ -161,7 +160,7 @@ export const edge: Adaptador = async (cap, e, { sinal, progresso }) => {
     for (const [i, p] of ps.entries()) {
       if (sinal.aborted) throw new FalhaProvedor("tempo esgotado", "fora");
       await progresso?.(10 + (80 * i) / ps.length, `Gravando a narração (${i + 1} de ${ps.length})…`);
-      // o serviço às vezes fecha a conexão no meio (principalmente com várias vozes ao mesmo tempo): até 3 tentativas
+      // o serviço às vezes fecha a conexão no meio (principalmente com várias vozes ao mesmo tempo): até 5 tentativas, esperando cada vez mais
       for (let tentativa = 1; ; tentativa++) {
         const tts = new MsEdgeTTS();
         try {
@@ -171,8 +170,8 @@ export const edge: Adaptador = async (cap, e, { sinal, progresso }) => {
           await rm(audioFilePath, { force: true });
           break;
         } catch (err) {
-          if (tentativa >= 3 || sinal.aborted) throw err;
-          await new Promise((r) => setTimeout(r, 800 * tentativa + Math.random() * 700));
+          if (tentativa >= 5 || sinal.aborted) throw err;
+          await new Promise((r) => setTimeout(r, 1500 * tentativa + Math.random() * 1000));
         } finally { tts.close(); }
       }
     }

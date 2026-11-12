@@ -52,7 +52,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   // sharp (composição do logo no QR PNG) roda como módulo Node nativo.
-  serverExternalPackages: ["sharp", "ffmpeg-static", "@huggingface/transformers", "onnxruntime-node"],
+  serverExternalPackages: ["sharp", "ffmpeg-static", "@huggingface/transformers", "onnxruntime-node", "msedge-tts", "ws"],
   experimental: {
     authInterrupts: true, // habilita forbidden() / unauthorized()
     // fotos enviadas no editor de sites (já reduzidas no navegador) passam de 1 MB às vezes

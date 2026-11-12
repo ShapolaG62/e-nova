@@ -2,8 +2,8 @@
 // O diretor de IA escolhe estes valores em cada cena; o desenho.ts sabe desenhar cada um.
 // Sem "server-only": a tela usa as listas para os seletores.
 
-export const CENARIOS = ["rua-noite", "casa", "corredor", "elevador", "quarto", "floresta", "loja", "cozinha", "escritorio", "ceu", "escuro", "painel", "predio", "apto-simples", "apto-rico"] as const;
-export const PALETAS = ["noite", "terror", "quente", "neutro", "neon", "suave", "dia"] as const;
+export const CENARIOS = ["rua-noite", "casa", "corredor", "elevador", "quarto", "floresta", "loja", "cozinha", "escritorio", "ceu", "escuro", "painel", "predio", "apto-simples", "apto-rico", "cidade-neve", "sala-tv", "sala-aula"] as const;
+export const PALETAS = ["noite", "terror", "quente", "neutro", "neon", "suave", "dia", "inverno"] as const;
 export const EXPRESSOES = ["neutro", "feliz", "rindo", "triste", "chorando", "surpreso", "bravo", "preocupado"] as const;
 export const CABELOS = ["curto", "cacheado", "black", "longo", "coque", "franja", "careca", "bone"] as const;
 export const ACOES = ["parado", "andando", "correndo", "assustado", "escondido", "celular", "apontando", "sentado", "sem-personagem"] as const;
@@ -65,6 +65,7 @@ export type AnimVideo = {
   manchete?: string;        // pergunta/título fixo no topo o vídeo todo; a palavra entre *asteriscos* fica amarela
   contagem?: string;        // contador fixo da série no canto (ex.: "FALTAM 26")
   elenco?: Personagem[];  // personagens de desenho fixos (até 4)
+  traco?: "desenho" | "recorte"; // jeito de desenhar o elenco (escolhido na tela, não pela IA)
 };
 
 export type Expressao = (typeof EXPRESSOES)[number];

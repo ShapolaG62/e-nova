@@ -22,6 +22,7 @@ const EM_ANDAMENTO = new Set(["ROTEIRIZANDO", "PRODUZINDO"]);
 const briefSchema = z.object({
   tema: z.string().trim().min(8, "Conte em uma frase do que é o vídeo.").max(2000),
   estilo: z.enum(["fotos", "animacao"]).default("animacao"),
+  personagens: z.enum(["desenho", "recorte", "silhueta"]).default("desenho"),
   formato: z.enum(FORMATOS.map((f) => f.id) as [string, ...string[]]),
   duracaoAlvo: z.coerce.number().int().min(10, "Mínimo de 10 segundos.").max(180, "Máximo de 3 minutos."),
   proporcao: z.enum(["9:16", "16:9", "1:1"]),

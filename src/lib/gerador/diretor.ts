@@ -173,7 +173,7 @@ ${aprendido}` : ""}`, prompt, schemaJson: z.toJSONSchema(schema) as Record<strin
     },
   );
   const d = dados!;
-  if (animado) limparAnimacao(d.cenas, !!d.anim?.escolha);
+  if (animado) { limparAnimacao(d.cenas, !!d.anim?.escolha); aplicarTraco(d, brief); }
   return {
     titulo: d.titulo,
     gancho: d.gancho,
@@ -207,7 +207,24 @@ export function promptDaCena(roteiro: VideoRoteiro, prompt: string, proporcao: V
 }
 
 function animadoTexto(b: VideoBrief) {
-  return b.estilo === "animacao" ? "Estilo: ANIMAÇÃO DESENHADA POR CÓDIGO (preencha anim em todas as cenas; vertical 9:16)." : "";
+  if (b.estilo !== "animacao") return "";
+  const base = "Estilo: ANIMAÇÃO DESENHADA POR CÓDIGO (preencha anim em todas as cenas; vertical 9:16).";
+  const quem = b.personagens ?? "desenho";
+  if (quem === "silhueta") return `${base} Personagens: SILHUETA (boneco de boné colorido). NÃO crie anim.elenco nem use "quem"; use acao, cenário e objetos.`;
+  if (quem === "recorte") return `${base} Personagens: RECORTE DE PAPEL (cabeça larga, olhos grandes, gorro, casaco e luvas, cidadezinha na neve). Crie anim.elenco com 2 a 4 personagens ORIGINAIS (nunca personagens de desenhos existentes): prefira cabelo "bone" (vira gorro de lã) ou cabelos simples, roupas de cores fortes e bem diferentes. Cenários: cidade-neve (rua com montanhas e neve), sala-tv (sala de casa com sofá e TV), sala-aula (escola); paleta "inverno". Humor rápido de cidade pequena, falas curtas, reações em close.`;
+  return `${base} Personagens: DESENHO 2D (cabeça redonda, rosto expressivo). Crie anim.elenco com 2 a 4 personagens e use "quem" nas cenas; cenários do mundo do prédio (predio, apto-simples, apto-rico) ou os outros; paletas "suave" ou "dia".`;
+}
+
+/** O traço do elenco vem da escolha na tela, não da IA; na silhueta o elenco é descartado. */
+function aplicarTraco(d: { anim?: z.infer<typeof AnimVideoSchema>; cenas: { anim?: z.infer<typeof AnimCenaSchema> }[] }, b: VideoBrief) {
+  const quem = b.personagens ?? "desenho";
+  d.anim ??= {};
+  if (quem === "silhueta") {
+    delete d.anim.elenco;
+    for (const c of d.cenas) if (c.anim) delete c.anim.quem;
+    return;
+  }
+  (d.anim as { traco?: string }).traco = quem;
 }
 
 /**
