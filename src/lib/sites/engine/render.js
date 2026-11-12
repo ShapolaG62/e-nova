@@ -17,9 +17,10 @@ import L11 from './layouts/pulso.js';
 import L12 from './layouts/maison.js';
 import L13 from './layouts/noite.js';
 import L14 from './layouts/horizonte.js';
+import L15 from './layouts/integra.js';
 import { FUNDOS_PALETAS, PALETAS, listaPaletas } from './paletas.js';
 
-const LAYOUTS = Object.fromEntries([L0, L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12, L13, L14].map((l) => [l.id, l]));
+const LAYOUTS = Object.fromEntries([L0, L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12, L13, L14, L15].map((l) => [l.id, l]));
 const listaLayouts = () => Object.values(LAYOUTS).sort((a, b) => (a.ordem || 99) - (b.ordem || 99))
   .map(({ id, nome, descricao, tema, setores, fontes }) => ({ id, nome, descricao, escuro: ['escuro', 'grafite', 'marca', 'tech', 'galaxia', 'oceano'].includes(tema), setores: setores || [], fonte: fontes.titulo }));
 

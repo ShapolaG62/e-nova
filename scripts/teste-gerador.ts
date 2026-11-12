@@ -23,8 +23,12 @@ async function ate(id: string, fim: string[], limiteMin: number) {
 async function main() {
   const u = await db.query.users.findFirst();
   const [row] = await db.insert(t.videoProjetos).values({
-    titulo: "Teste: Dona Rita e o forno",
-    brief: {
+    titulo: process.env.CORTE ? "Teste: Como funciona" : "Teste: Dona Rita e o forno",
+    brief: process.env.CORTE ? {
+      tema: process.env.CORTE,
+      estilo: "animacao", personagens: (process.env.PERS === "3d" ? "3d" : "corte"), formato: "como-funciona", duracaoAlvo: 60, proporcao: "9:16", visual: "imagem", fonteVisual: "ia",
+      legendas: true, musica: false, revisar: true,
+    } : {
       tema: "Dona Rita abre a padaria às 5h da manhã, o forno falha no dia da maior encomenda do ano e ela salva tudo com a ajuda do café da esquina. Final feliz, convite para visitar a padaria.",
       estilo: "fotos", formato: "historia", duracaoAlvo: 20, proporcao: "9:16", visual: "imagem", fonteVisual: "ia",
       personagem: "Dona Rita, 60 anos, cabelo grisalho preso em coque, avental vermelho, sorriso largo, dona de padaria",
@@ -35,13 +39,13 @@ async function main() {
   const id = row.id;
   // duas fotos "do cliente" para animar (as fotos das áreas servem de teste)
   const fotos = [];
-  for (const [i, arq] of ["public/areas/vendas.jpg", "public/areas/operacao.jpg"].entries()) {
+  for (const [i, arq] of (process.env.CORTE ? [] : ["public/areas/vendas.jpg", "public/areas/operacao.jpg"]).entries()) {
     const k = `gerador/${id}/foto-${i + 1}.jpg`;
     await putObject(k, readFileSync(arq), "image/jpeg");
     fotos.push(k);
   }
   const p0 = (await db.query.videoProjetos.findFirst({ where: eq(t.videoProjetos.id, id) }))!;
-  await db.update(t.videoProjetos).set({ brief: { ...p0.brief, fotosAnimar: fotos } }).where(eq(t.videoProjetos.id, id));
+  if (fotos.length) await db.update(t.videoProjetos).set({ brief: { ...p0.brief, fotosAnimar: fotos } }).where(eq(t.videoProjetos.id, id));
   console.log("projeto", id);
 
   await enfileirarRoteiro(id);
@@ -50,7 +54,9 @@ async function main() {
   console.log("CADEIA:", p1.roteiro?.cadeia);
   console.log("PERSONAGENS:", JSON.stringify(p1.roteiro?.personagens));
   console.log("ESTILO:", p1.roteiro?.estiloVisual);
-  for (const c of p1.roteiro!.cenas) console.log(` ${c.id}${c.visual.foto ? " [FOTO]" : ""}: ${c.narracao} | ${c.visual.prompt.slice(0, 90)}`);
+  for (const c of p1.roteiro!.cenas) console.log(` ${c.id}${c.visual.foto ? " [FOTO]" : ""}: ${c.narracao} | ${c.mundo3d ? JSON.stringify(c.mundo3d) : c.corte ? JSON.stringify(c.corte) : c.visual.prompt.slice(0, 90)}`);
+  if (p1.roteiro?.mundo3d) console.log("MAQUETE:", JSON.stringify({ ...p1.roteiro.mundo3d, pecas: p1.roteiro.mundo3d.pecas.map((x) => ({ ...x, prims: x.prims?.length })) }));
+  if (p1.roteiro?.corte) console.log("MUNDO:", JSON.stringify({ ...p1.roteiro.corte, pecas: p1.roteiro.corte.pecas.map((x) => ({ ...x, svg: x.svg ? x.svg.length + " chars" : undefined })) }));
 
   await enfileirarProducao(id);
   const p2 = await ate(id, ["PRONTO", "FALHOU"], 20);

@@ -5,33 +5,37 @@ import ffmpegPath from "ffmpeg-static";
 import sharp from "sharp";
 import { argsVideo, ffmpeg } from "@/lib/clips/ffmpeg";
 import { quadro } from "./desenho";
+import { camCorte, quadroCorte } from "./corte";
+import { camDaCena, quadro3D } from "./mundo3d";
 import { gerarAmbiente, gerarSom } from "./sons";
-import type { AnimCena, AnimVideo, Som } from "./tipos";
+import type { AnimCena, AnimVideo, Cena3D, CorteCena, CorteVideo, Mundo3D, Som } from "./tipos";
 
 // Render da animação por código: cada quadro é desenhado em SVG, rasterizado pelo sharp
 // e enviado direto para o FFmpeg. Depois entram a narração, os efeitos e o clima de fundo.
 
-export type CenaRender = { anim: AnimCena; dur: number; fala: number; narracao: string; audio: string };
+export type CenaRender = { anim: AnimCena; dur: number; fala: number; narracao: string; audio: string; corte?: CorteCena; mundo3d?: Cena3D };
 
 const LIGA = new Set("a o as os um uma uns umas de do da dos das em no na nos nas num numa por pelo pela pra pro para com sem e ou que se não nem ao à aos às".split(" "));
 
 /** Blocos de 1 a 3 palavras, sem deixar palavra de ligação sozinha no fim. */
-function blocos(texto: string) {
+function blocos(texto: string, curto = false) {
   const ws = texto.split(/\s+/).filter(Boolean);
   const out: string[][] = [];
   let at: string[] = [];
   for (const w of ws) {
     at.push(w);
     const fim = /[.!?…;:,]$/.test(w);
-    if (fim || at.join(" ").length >= 22 || (!LIGA.has(w.toLowerCase()) && (at.length >= 3 || at.join(" ").length >= 16))) { out.push(at); at = []; }
+    // curto (mundo em corte): 1 ou 2 palavras por vez, como nos Shorts de "como funciona"
+    const max = curto ? 2 : 3, letras = curto ? 14 : 16;
+    if (fim || at.join(" ").length >= 22 || (!LIGA.has(w.toLowerCase()) && (at.length >= max || at.join(" ").length >= letras))) { out.push(at); at = []; }
   }
   if (at.length) out.push(at);
   return out;
 }
 
 /** Em que bloco/palavra a fala está no instante t (proporcional ao tamanho das palavras). */
-function legendaEm(narracao: string, fala: number, t: number) {
-  const bs = blocos(narracao);
+function legendaEm(narracao: string, fala: number, t: number, curto = false) {
+  const bs = blocos(narracao, curto);
   const peso = (w: string) => Math.max(2, w.replace(/[^\p{L}\p{N}]/gu, "").length) + (/[.,!?;:…]$/.test(w) ? 3 : 0);
   const total = bs.flat().reduce((a, w) => a + peso(w), 0) || 1;
   let acc = 0.05;
@@ -48,6 +52,8 @@ function legendaEm(narracao: string, fala: number, t: number) {
 export async function renderAnimacao(o: {
   dir: string; W: number; H: number; fps?: number;
   cenas: CenaRender[]; video: AnimVideo; legendas: boolean; clima: "tensao" | "leve";
+  corte?: CorteVideo; // mundo em corte: desenha com o corte.ts em vez do desenho.ts
+  mundo3d?: Mundo3D;  // maquete 3D: desenha com o mundo3d.ts
   progresso?: (pct: number) => Promise<void> | void;
 }): Promise<string> {
   const fps = o.fps ?? 24;
@@ -62,11 +68,30 @@ export async function renderAnimacao(o: {
   ff.stderr.on("data", (d) => (erro += d));
   const fim = new Promise<void>((ok, falha) => ff.on("close", (c) => (c === 0 ? ok() : falha(new Error(`ffmpeg (animação): ${erro.slice(-400)}`)))));
   const ultima = o.cenas.length - 1;
+  // mundo em corte: peças já construídas em cada cena (acumulando o que entra e tirando o que sai)
+  const visiveis: string[][] = [];
+  if (o.corte || o.mundo3d) {
+    const atual = new Set<string>();
+    for (const c of o.cenas) { const k = o.mundo3d ? c.mundo3d : c.corte; for (const id of k?.adiciona ?? []) atual.add(id); for (const id of k?.remove ?? []) atual.delete(id); visiveis.push([...atual]); }
+  }
+  // maquete 3D: a câmera de cada cena sai de onde a anterior parou
+  const camsCorte = o.corte ? o.cenas.map((c, i) => camCorte(o.corte!, c.corte ?? {}, visiveis[i], o.W, o.H)) : [];
+  const cams = o.mundo3d ? o.cenas.map((c, i) => camDaCena(o.mundo3d!, c.mundo3d ?? {}, visiveis[i])) : [];
   const desenhar = (i: number) => {
     let t = i / fps, k = 0;
     while (k < ultima && t >= o.cenas[k].dur) { t -= o.cenas[k].dur; k++; }
     const c = o.cenas[k];
-    const svg = quadro({
+    const svg = o.mundo3d ? quadro3D({
+      W: o.W, H: o.H, t, dur: c.dur, mundo: o.mundo3d, cena: c.mundo3d ?? {}, visiveis: visiveis[k],
+      camAntes: k > 0 ? cams[k - 1] : undefined,
+      ceuAntes: [...o.cenas.slice(0, k)].reverse().find((x) => x.mundo3d?.ceu)?.mundo3d?.ceu,
+      legenda: o.legendas ? legendaEm(c.narracao, c.fala, t, true) : undefined,
+    }) : o.corte ? quadroCorte({
+      W: o.W, H: o.H, t, dur: c.dur, seed: 77, video: o.corte, cena: c.corte ?? {}, visiveis: visiveis[k],
+      camAntes: k > 0 ? camsCorte[k - 1] : undefined,
+      ceuAntes: [...o.cenas.slice(0, k)].reverse().find((x) => x.corte?.ceu)?.corte?.ceu,
+      legenda: o.legendas ? legendaEm(c.narracao, c.fala, t, true) : undefined,
+    }) : quadro({
       W: o.W, H: o.H, cena: c.anim, t, dur: c.dur, seed: 1000 + k * 17, video: o.video,
       legenda: o.legendas ? legendaEm(c.narracao, c.fala, t) : undefined,
       escolhaProg: k === ultima && o.video.escolha ? Math.min(1, t / Math.max(1, c.dur * 0.6)) : undefined,
@@ -95,7 +120,7 @@ export async function renderAnimacao(o: {
   const cache = new Map<Som, string>();
   let t0 = 0;
   for (const c of o.cenas) {
-    const som = c.anim.som;
+    const som = c.mundo3d?.som ?? c.corte?.som ?? c.anim.som;
     if (som && som !== "nenhum") {
       if (!cache.has(som)) cache.set(som, await gerarSom(som, o.dir));
       entradas.push("-i", cache.get(som)!);

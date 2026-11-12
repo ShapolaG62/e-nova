@@ -21,7 +21,7 @@ PRINTS = Path(__file__).parent / "prints"
 PRINTS.mkdir(exist_ok=True)
 
 TELAS = ["/painel", "/painel/gerador", "/painel/clipador", "/painel/visuais", "/painel/sites", "/painel/vozes"]
-VISUAIS = ["maison", "noite", "horizonte", "aurora", "brasa", "chave", "clinica", "lex", "oficio", "patas", "sabor", "serena", "vitrine", "atelier", "pulso"]
+VISUAIS = ["integra", "maison", "noite", "horizonte", "aurora", "brasa", "chave", "clinica", "lex", "oficio", "patas", "sabor", "serena", "vitrine", "atelier", "pulso"]
 PALETAS = ["oceano-profundo", "por-do-sol", "copa-da-floresta", "minimalista", "hora-dourada", "gelo-artico", "rosa-do-deserto", "inovacao", "jardim-botanico", "galaxia"]
 TAMANHOS = {"computador": {"width": 1366, "height": 860}, "celular": {"width": 375, "height": 812}}
 

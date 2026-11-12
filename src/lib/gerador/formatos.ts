@@ -12,6 +12,13 @@ export type Formato = {
 
 export const FORMATOS: Formato[] = [
   {
+    id: "como-funciona",
+    nome: "Como funciona (problema → solução)",
+    descricao: "Uma coisa sendo construída passo a passo: cada solução resolve um problema e cria o próximo.",
+    estrutura: "Cena 1 (gancho): a situação inicial e o desejo, em segunda pessoa (“Se você deixar água num tanque raso no deserto…” / “Você construiu um pedágio…”) → a primeira solução simples funciona por um momento → “Mas…” o problema concreto que a derruba → “Então você…” a solução seguinte, construída na frente do público → “Esse é o/a <nome>” (a solução ganha nome numa plaquinha) → repita a escada de 4 a 7 degraus, cada degrau mais engenhoso, com um número ou fato verdadeiro em selo quando houver → penúltima cena: tudo funcionando junto, o mundo inteiro na tela → última cena: o resultado surpreendente + pergunta curta para comentar, com UMA palavra do próprio assunto (ex.: “Comenta <palavra do tema> se você não sabia”). Cada cena tem UMA frase de no máximo 12 palavras (a 1ª, no máximo 10); no presente, uma ação por cena; nunca invente datas, números ou nomes que não estejam no tema.",
+    cenaSeg: [2.5, 5],
+  },
+  {
     id: "voce-decide",
     nome: "“Você decide” (história interativa)",
     descricao: "Suspense em episódios que termina com o público escolhendo A ou B nos comentários.",

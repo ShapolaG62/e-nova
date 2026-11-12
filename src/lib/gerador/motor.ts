@@ -391,14 +391,14 @@ export async function montar(id: string) {
         const ultima = i === roteiro.cenas.length - 1;
         const dur = Math.max(1.5, fala + (ultima ? (roteiro.anim?.escolha ? 2.2 : 0.9) : 0.35));
         const base = c.anim ?? ANIM_PADRAO;
-        cenasR.push({ anim: { ...base, status: base.status ?? c.textoNaTela?.toUpperCase().slice(0, 24) }, dur, fala, narracao: c.narracao, audio: aud });
+        cenasR.push({ anim: { ...base, status: base.status ?? c.textoNaTela?.toUpperCase().slice(0, 24) }, dur, fala, narracao: c.narracao, audio: aud, ...(c.corte ? { corte: c.corte } : {}), ...(c.mundo3d ? { mundo3d: c.mundo3d } : {}) });
         blocos.push({ inicio: t0, fala, dur, narracao: c.narracao, textoNaTela: c.textoNaTela });
         t0 += dur;
       }
       const tenso = cenasR.some((c) => c.anim.paleta === "terror" || c.anim.efeito === "perigo");
       let ult = 0;
       await renderAnimacao({
-        dir, W, H, cenas: cenasR, video: roteiro.anim ?? {}, legendas: brief.legendas, clima: tenso || cenasR[0]?.anim.paleta === "noite" ? "tensao" : "leve",
+        dir, W, H, cenas: cenasR, video: roteiro.anim ?? {}, legendas: brief.legendas, ...(roteiro.corte ? { corte: roteiro.corte } : {}), ...(roteiro.mundo3d ? { mundo3d: roteiro.mundo3d } : {}), clima: !roteiro.corte && !roteiro.mundo3d && (tenso || cenasR[0]?.anim.paleta === "noite") ? "tensao" : "leve",
         progresso: async (pct) => { if (Date.now() - ult > 2000) { ult = Date.now(); await atualizar(id, { progresso: Math.round(80 + pct * 15), etapa: `Desenhando a animação… ${Math.round(pct * 100)}%` }); } },
       });
     } else {
