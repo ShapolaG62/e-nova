@@ -8,7 +8,7 @@ const PASTA = "00000000-0000-4000-8000-00000000a405";
 const locais = new Map<string, Promise<string | null>>();
 /** Baixa a foto para o servidor uma vez (links da Pixabay expiram e às vezes bloqueiam). */
 function local(f: Foto) {
-  if (!locais.has(f.id)) locais.set(f.id, import("@/lib/sites/service").then((m) => m.baixarImagemUrl(f.url, PASTA)).catch(() => null));
+  if (!locais.has(f.id)) locais.set(f.id, import("@/lib/sites/service").then((m) => m.baixarImagemUrl(f.url, PASTA)).catch(() => { locais.delete(f.id); return null; })); // falha não fica guardada: tenta de novo na próxima
   return locais.get(f.id)!;
 }
 
@@ -36,6 +36,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/vendas/amost
   const setor = SETOR_POR_LAYOUT[layout] ?? "outro";
   const reais = await fotosReais(pegarSetor(setor).busca || setor);
   const baixadas = (await Promise.all(reais.slice(0, 10).map(local))).filter((x): x is string => !!x);
+  // links da Pixabay expiram: se as fotos não baixaram, esquece a busca guardada para pegar links novos na próxima
+  if (baixadas.length < 6) cache.delete(pegarSetor(setor).busca || setor);
   const fotos = baixadas.length >= 6 ? baixadas : FOTOS_AMOSTRA;
   const doc = montarDocumento(NEGOCIO_AMOSTRA, { setor, layout, fotos });
   // uma foto por serviço, buscada pelo nome do serviço (como no site de verdade)

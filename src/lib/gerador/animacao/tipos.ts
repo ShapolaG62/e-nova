@@ -83,3 +83,94 @@ export type Personagem = {
   oculos?: boolean;
   barba?: boolean;
 };
+
+// ───────── Mundo em corte ("Como funciona"): um lugar só, visto de lado com o chão aberto,
+// que vai ganhando peças a cada passo da explicação (muro, poço, cúpula…). ─────────
+export const AMBIENTES_CORTE = ["deserto", "campo", "cidade", "praia", "neve", "montanha", "floresta", "fabrica"] as const;
+export const CEUS_CORTE = ["dia", "entardecer", "noite"] as const;
+export const LUGARES_PECA = ["chao", "subsolo", "ceu"] as const;
+// peças que o motor já sabe desenhar; o resto a IA desenha em SVG simples
+export const PECAS_PRONTAS = ["buraco", "agua", "blocos", "muro", "cupula", "torre", "caixa", "cano", "terra-amontoada", "fogo"] as const;
+export const ACOES_BONECO = ["parado", "andando", "cavando", "carregando", "apontando", "pensando", "comemorando", "assustado", "sem-boneco"] as const;
+export const FLUXOS = ["quente", "frio", "agua", "ar", "forca"] as const;
+
+export type PecaCorte = {
+  id: string;            // curto, sem espaço (ex.: "muro")
+  nome: string;          // rótulo em português (ex.: "muro de sombra")
+  pronta?: (typeof PECAS_PRONTAS)[number]; // desenho pronto do motor
+  desenho?: string;      // descrição em inglês para a IA desenhar (quando não é pronta)
+  svg?: string;          // conteúdo SVG já limpo (viewBox 0 0 200 200), preenchido depois do roteiro
+  cor?: string;          // #hex principal (peças prontas)
+  lugar: (typeof LUGARES_PECA)[number];
+  x: number;             // centro, 0 a 1 da largura
+  largura: number;       // 0,06 a 0,7 da largura
+  altura?: number;       // proporção altura/largura (padrão 1)
+  dentro?: string;       // id de outra peça: esta fica no fundo dela (ex.: gelo dentro do poço)
+};
+export type CorteVideo = {
+  ambiente: (typeof AMBIENTES_CORTE)[number];
+  corBone?: string;      // cor do boné do boneco
+  pecas: PecaCorte[];
+};
+export type CorteCena = {
+  adiciona?: string[];   // ids que entram nesta cena (crescem do chão)
+  remove?: string[];     // ids que saem
+  foco?: string;         // câmera aproxima desta peça
+  boneco?: { acao: (typeof ACOES_BONECO)[number]; x?: number }; // x de 0 a 1
+  etiquetas?: { peca: string; texto: string; cor?: "azul" | "vermelho" | "verde" | "amarelo" }[];
+  selo?: string;         // número em selo amarelo (ex.: "2.000 ANOS", "+3 °C")
+  placa?: { titulo: string; sub?: string }; // plaquinha de papel com o nome da solução
+  fluxo?: { tipo: (typeof FLUXOS)[number]; peca: string; sentido?: "sobe" | "desce" | "direita" | "esquerda" };
+  ceu?: (typeof CEUS_CORTE)[number];
+  som?: Som;
+  destaques?: string[];
+  falha?: string;        // id da peça que falha nesta cena (treme e pisca em vermelho)
+};
+
+// ───────── Mundo 3D simples ("Como funciona" em 3D): formas com sombra chapada e contorno preto,
+// câmera que voa entre planos, bonecos de cabeça redonda. Desenhado por código, sem IA de imagem. ─────────
+export const CHAOS_3D = ["grama", "areia", "asfalto", "neve", "terra", "piso"] as const;
+export const PECAS_3D = ["casa", "predio", "muro", "cofre", "caixa", "torre", "cupula", "arvore", "poste", "carro", "caminhao", "cabine", "cancela", "estrada", "ponte", "agua", "sala-enterrada", "blocos", "cerca", "porta", "escada", "mesa", "pessoa"] as const;
+export const FORMAS_3D = ["caixa", "cilindro", "cone", "esfera", "piramide"] as const;
+export const CAMERAS_3D = ["geral", "perto", "lado", "cima", "baixo", "dentro"] as const;
+
+export type Prim3D = {
+  f: (typeof FORMAS_3D)[number];
+  p: [number, number, number];   // centro da base (x, y, z) em metros, relativo à peça
+  s: [number, number, number];   // largura, altura, profundidade
+  cor: string;
+  rot?: number;                  // giro em graus no eixo vertical
+};
+export type Peca3D = {
+  id: string;
+  nome: string;
+  pronta?: (typeof PECAS_3D)[number];
+  prims?: Prim3D[];              // peça montada pela IA com formas simples (quando não é pronta)
+  desenho?: string;              // descrição em inglês para a IA montar (quando não é pronta)
+  cor?: string;
+  x: number; z: number;          // posição no chão, em metros (-8 a 8)
+  escala?: number;               // 0,4 a 3
+  rot?: number;                  // graus
+  enterrada?: boolean;           // abaixo do chão (sala, cano) — o chão vira corte
+};
+export type Mundo3D = {
+  chao: (typeof CHAOS_3D)[number];
+  ceu?: "dia" | "entardecer" | "noite";
+  corBone?: string;
+  pecas: Peca3D[];
+};
+export type Cena3D = {
+  adiciona?: string[];
+  remove?: string[];
+  foco?: string;                 // peça para onde a câmera olha
+  camera?: (typeof CAMERAS_3D)[number];
+  boneco?: { acao: (typeof ACOES_BONECO)[number]; perto?: string };
+  etiquetas?: { peca: string; texto: string; cor?: "azul" | "vermelho" | "verde" | "amarelo" }[];
+  selo?: string;
+  placa?: { titulo: string; sub?: string };
+  falha?: string;
+  movendo?: string;              // peça que anda pela cena (carro passando, porta abrindo)
+  ceu?: "dia" | "entardecer" | "noite";
+  som?: Som;
+  destaques?: string[];
+};

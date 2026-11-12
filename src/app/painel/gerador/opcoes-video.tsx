@@ -9,13 +9,15 @@ const ESTILOS = [
   { id: "desenho", nome: "Desenho 2D", texto: "Cabeça redonda e rosto expressivo, como “Neste planeta…”" },
   { id: "recorte", nome: "Recorte de papel", texto: "Cabeça larga, gorro e cidadezinha na neve" },
   { id: "silhueta", nome: "Silhueta", texto: "Boneco de boné, suspense de “Você decide”" },
+  { id: "corte", nome: "Mundo em corte", texto: "Boneco palito constrói tudo passo a passo: “Como funciona”" },
+  { id: "3d", nome: "Maquete 3D", texto: "3D simples com contorno, câmera que voa: “Como funciona”" },
 ] as const;
 
 export function EstiloPersonagens() {
   return (
     <fieldset className="grid gap-2">
       <legend className="mb-1.5 text-sm font-medium">Personagens <span className="font-normal text-muted-foreground">(na animação desenhada)</span></legend>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {ESTILOS.map((e) => (
           <label key={e.id} className="grid cursor-pointer gap-1.5 rounded-xl border p-1.5 text-xs has-[:checked]:border-signal has-[:checked]:bg-signal/5 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50">
             <input type="radio" name="personagens" value={e.id} defaultChecked={e.id === "desenho"} className="sr-only" />

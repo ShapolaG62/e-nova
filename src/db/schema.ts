@@ -866,7 +866,7 @@ export type IaTarefa = typeof iaTarefas.$inferSelect;
 export type VideoBrief = {
   tema: string;
   estilo?: "fotos" | "animacao"; // animacao = desenhado por código, sem IA de imagem/vídeo
-  personagens?: "desenho" | "recorte" | "silhueta"; // só na animação: como o elenco é desenhado
+  personagens?: "desenho" | "recorte" | "silhueta" | "corte" | "3d"; // só na animação: como o elenco é desenhado
   formato: string;              // id do formato (explicativo, ranking, historia, produto, dicas…)
   duracaoAlvo: number;          // segundos
   proporcao: "9:16" | "16:9" | "1:1";
@@ -896,6 +896,8 @@ export type VideoCenaRoteiro = {
   visual: { tipo: "imagem" | "video"; prompt: string; camera?: string; busca?: string; escolhida?: string; foto?: string };
   duracaoAlvo: number;
   anim?: import("@/lib/gerador/animacao/tipos").AnimCena;
+  corte?: import("@/lib/gerador/animacao/tipos").CorteCena;
+  mundo3d?: import("@/lib/gerador/animacao/tipos").Cena3D;
 };
 export type VideoRoteiro = {
   titulo: string;
@@ -908,6 +910,8 @@ export type VideoRoteiro = {
   usado?: string;
   cadeia?: string[];            // quem fez o quê na corrente de IAs (roteiro, revisão, personagem…)
   anim?: import("@/lib/gerador/animacao/tipos").AnimVideo;
+  corte?: import("@/lib/gerador/animacao/tipos").CorteVideo; // mundo em corte ("Como funciona")
+  mundo3d?: import("@/lib/gerador/animacao/tipos").Mundo3D;  // maquete 3D ("Como funciona" em 3D)
 };
 export type VideoCenaProducao = {
   id: string;
