@@ -372,3 +372,23 @@ export async function testarIAAction(): Promise<R<string>> {
     return { ok: true, data: data.frase };
   } catch (e) { return falha(e); }
 }
+
+// ───────── Coleta pelos links (Instagram, WhatsApp, Maps, site) para o cadastro à mão ─────────
+const coletaSchema = z.object({
+  instagram: z.string().trim().max(200).optional().default(""),
+  whatsapp: z.string().trim().max(200).optional().default(""),
+  maps: z.string().trim().max(600).optional().default(""),
+  site: z.string().trim().max(300).optional().default(""),
+});
+
+export async function coletarLinksAction(input: z.input<typeof coletaSchema>): Promise<R<import("@/lib/sites/coleta").Coleta>> {
+  const user = await requirePermission("sites:write");
+  const p = coletaSchema.safeParse(input);
+  if (!p.success) return { ok: false, message: "Links inválidos." };
+  if (!p.data.instagram && !p.data.whatsapp && !p.data.maps && !p.data.site) return { ok: false, message: "Cole pelo menos um link." };
+  if (!(await rateLimit(`coleta:${user.id}`, 30, 600))) return { ok: false, message: "Muitas buscas seguidas. Aguarde alguns minutos." };
+  try {
+    const { coletarLinks } = await import("@/lib/sites/coleta");
+    return { ok: true, data: await coletarLinks(p.data, user.id) };
+  } catch (e) { return falha(e); }
+}
