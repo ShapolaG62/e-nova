@@ -117,7 +117,10 @@ function textosBase(neg, st, op) {
     bloco('galeria', { etiqueta: 'Nosso espaço', titulo: `Conheça ${st.vocab.lugar}`, destaques: ['Conheça'], fotos: [] }),
     bloco('historia', {
       etiqueta: 'Nossa história', titulo: `Sobre ${neg.nome}`, destaques: [],
-      texto: `${neg.nome} nasceu com um objetivo simples: oferecer em ${v.cidade} um atendimento de verdade, com qualidade e preço justo. Cada ${st.vocab.cliente} é tratado com atenção, e é por isso que tanta gente volta e indica.\n\nAqui você encontra profissionais que gostam do que fazem e um time pronto para te ajudar. Venha conhecer.`,
+      // com o resumo colhido dos links (bio do Instagram, site), a história começa pelo que o negócio é de verdade
+      texto: neg.resumo ? `${String(neg.resumo).trim().replace(/.?$/, ".")}
+
+Aqui você encontra profissionais que gostam do que fazem e um time pronto para te ajudar. Venha conhecer.` : `${neg.nome} nasceu com um objetivo simples: oferecer em ${v.cidade} um atendimento de verdade, com qualidade e preço justo. Cada ${st.vocab.cliente} é tratado com atenção, e é por isso que tanta gente volta e indica.\n\nAqui você encontra profissionais que gostam do que fazem e um time pronto para te ajudar. Venha conhecer.`,
     }),
     bloco('depoimentos', {
       etiqueta: 'Depoimentos', titulo: `O que dizem nossos ${st.vocab.clientes}`, destaques: [st.vocab.clientes],

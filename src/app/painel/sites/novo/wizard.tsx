@@ -18,6 +18,8 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { selectClass } from "@/components/field";
 import { cn } from "@/lib/utils";
+import type { Coleta } from "@/lib/sites/coleta";
+import { ColetaLinks } from "./coleta-links";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Lead = Record<string, any> & { nome: string };
@@ -133,7 +135,19 @@ export function NovoSiteWizard({
           funil={funil}
           onTrocarSetor={() => setPasso(0)}
           onUsar={(l) => {
-            setLead(l);
+            const { _coleta, ...limpo } = l as Lead & { _coleta?: Coleta };
+            if (_coleta) {
+              const sug = _coleta.setorSugerido;
+              if (sug && sug !== setorId && porId.has(sug)) { aplicarSetor(sug); toast.success(`Ramo ajustado para ${porId.get(sug)!.nome}, pelo que achamos nos links.`); }
+              const base = porId.get(sug && porId.has(sug) ? sug : setorId);
+              if (_coleta.servicos?.length) {
+                setTodosServ([...new Set([..._coleta.servicos, ...(base?.servicos ?? [])])]);
+                setServicos(_coleta.servicos.slice(0, 8));
+              }
+              if (_coleta.cores.length) setCores(_coleta.cores);
+              if (_coleta.fotos.length) setFotosUrls(_coleta.fotos.slice(0, 10));
+            }
+            setLead(limpo as Lead);
             setAbordagem(null);
             setPasso(2);
           }}
@@ -309,6 +323,8 @@ function Nota({ lead }: { lead: Lead }) {
 
 function PassoNegocio({ setor, funil, onTrocarSetor, onUsar }: { setor: SetorResumo; funil: Lead[]; onTrocarSetor: () => void; onUsar: (l: Lead) => void }) {
   const [aba, setAba] = useState<"funil" | "manual">(funil.length ? "funil" : "manual");
+  const [coleta, setColeta] = useState<Coleta | null>(null);
+  const [versao, setVersao] = useState(0);
   const [f, setF] = useState("");
   const lista = funil
     .filter((l) => `${l.nome} ${l.cidade}`.toLowerCase().includes(f.toLowerCase()))
@@ -318,17 +334,22 @@ function PassoNegocio({ setor, funil, onTrocarSetor, onUsar }: { setor: SetorRes
     e.preventDefault();
     const d = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
     const whatsapp = celularBR(d.telefone);
+    const c = coleta?.lead ?? {};
     onUsar({
+      // o que veio dos links (mapa, horários, avaliações, fotos do Google…) e por cima o que está no formulário
+      ...c,
       ...d,
       nome: d.nome.trim(),
       uf: d.uf.trim().toUpperCase(),
       id: "m" + Date.now().toString(36),
-      whatsapp,
-      celular: !!whatsapp,
+      whatsapp: whatsapp || String(c.whatsapp ?? ""),
+      celular: !!(whatsapp || c.whatsapp),
       situacaoSite: "sem",
-      origem: "manual",
-      fotos: [],
-      horarios: [],
+      origem: coleta ? "links" : "manual",
+      fotos: Array.isArray(c.fotos) ? c.fotos : [],
+      horarios: Array.isArray(c.horarios) ? c.horarios : [],
+      ...(coleta?.resumo ? { resumo: coleta.resumo } : {}),
+      ...(coleta ? { _coleta: coleta } : {}),
     });
   };
 
@@ -414,19 +435,22 @@ function PassoNegocio({ setor, funil, onTrocarSetor, onUsar }: { setor: SetorRes
           </div>
         )
       ) : (
-        <form onSubmit={manual} className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2 sm:p-5">
-          <Campo nome="nome" rotulo="Nome do negócio" required />
-          <Campo nome="telefone" rotulo="WhatsApp / telefone" placeholder="(11) 98765-4321" inputMode="tel" />
-          <Campo nome="cidade" rotulo="Cidade" required />
-          <Campo nome="uf" rotulo="UF" maxLength={2} />
-          <Campo nome="endereco" rotulo="Endereço" className="sm:col-span-2" />
-          <Campo nome="instagram" rotulo="Instagram" placeholder="@perfil" />
+        <div className="grid gap-4">
+        <ColetaLinks onPronto={(c) => { setColeta(c); setVersao((n) => n + 1); }} />
+        <form key={versao} onSubmit={manual} className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2 sm:p-5">
+          <Campo nome="nome" rotulo="Nome do negócio" required defaultValue={String(coleta?.lead.nome ?? "")} />
+          <Campo nome="telefone" rotulo="WhatsApp / telefone" placeholder="(11) 98765-4321" inputMode="tel" defaultValue={String(coleta?.lead.telefone ?? "")} />
+          <Campo nome="cidade" rotulo="Cidade" required defaultValue={String(coleta?.lead.cidade ?? "")} />
+          <Campo nome="uf" rotulo="UF" maxLength={2} defaultValue={String(coleta?.lead.uf ?? "")} />
+          <Campo nome="endereco" rotulo="Endereço" className="sm:col-span-2" defaultValue={String(coleta?.lead.endereco ?? "")} />
+          <Campo nome="instagram" rotulo="Instagram" placeholder="@perfil" defaultValue={String(coleta?.lead.instagram ?? "")} />
           <div className="flex items-end">
             <Button type="submit" className="h-10 w-full sm:w-auto">
               Usar este negócio <ArrowRight />
             </Button>
           </div>
         </form>
+        </div>
       )}
       <Rodape onVoltar={onTrocarSetor} />
     </div>
